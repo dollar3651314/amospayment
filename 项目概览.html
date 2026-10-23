@@ -1,423 +1,277 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Payment 代付系统概览</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
 <style>
-/* 布局：一列文档，每节一张图；资金流向用"账本色"——墨蓝为主，铜色只标关键动作 */
+/* 布局：汇报页。每屏一个结论：①全貌图 ②长什么样（真实原型截图）③一笔钱的逻辑（泳道图）④三条底线 ⑤进度 */
 :root {
-  --bg: #f6f7f8;
-  --surface: #ffffff;
-  --ink: #16202c;
-  --muted: #5a6573;
-  --line: #d6dbe1;
-  --accent: #1f5f8b;
-  --accent-soft: #e3eef6;
-  --copper: #b05f1e;
-  --copper-soft: #f7ebe0;
-  --ok: #2f7a4b;
-  --ok-soft: #e4f2e9;
-  --wait: #8a6a10;
-  --wait-soft: #f6efd8;
-  --f-display: "Noto Serif SC", "Songti SC", serif;
+  --bg: #f4f6f8; --surface: #ffffff; --ink: #141d27; --muted: #5b6673; --line: #d9dfe6;
+  --navy: #16212c; --navy-ink: #e8eef4; --accent: #1f5f8b; --accent-soft: #e2edf6;
+  --money: #b05f1e; --money-soft: #f8ebdf; --ok: #2c7a4a; --ok-soft: #e2f1e7; --proto: #6b3fa0;
   --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #11161c; --surface: #19212a; --ink: #e6eaef; --muted: #9aa5b2; --line: #2e3945;
-    --accent: #6fb0dc; --accent-soft: #1b2e3d; --copper: #e09a5e; --copper-soft: #3a2a1c;
-    --ok: #6cc28c; --ok-soft: #1a3324; --wait: #d9b85a; --wait-soft: #352d16; color-scheme: dark;
-  }
+  :root:not([data-theme="light"]) { --bg: #0e1319; --surface: #161f28; --ink: #e5eaef; --muted: #9ba7b3; --line: #2b3643; --navy: #0a0f14; --navy-ink: #dfe7ee; --accent: #6aaedb; --accent-soft: #1a2c3b; --money: #e39b5c; --money-soft: #36271a; --ok: #66bf88; --ok-soft: #173022; --proto: #b38be0; color-scheme: dark; }
 }
-:root[data-theme="dark"] {
-  --bg: #11161c; --surface: #19212a; --ink: #e6eaef; --muted: #9aa5b2; --line: #2e3945;
-  --accent: #6fb0dc; --accent-soft: #1b2e3d; --copper: #e09a5e; --copper-soft: #3a2a1c;
-  --ok: #6cc28c; --ok-soft: #1a3324; --wait: #d9b85a; --wait-soft: #352d16; color-scheme: dark;
-}
+:root[data-theme="dark"] { --bg: #0e1319; --surface: #161f28; --ink: #e5eaef; --muted: #9ba7b3; --line: #2b3643; --navy: #0a0f14; --navy-ink: #dfe7ee; --accent: #6aaedb; --accent-soft: #1a2c3b; --money: #e39b5c; --money-soft: #36271a; --ok: #66bf88; --ok-soft: #173022; --proto: #b38be0; color-scheme: dark; }
 * { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--bg); color: var(--ink);
-  font-family: var(--f-body); font-size: 15px; line-height: 1.7;
-}
-.wrap {
-  max-width: 1040px; margin: 0 auto;
-  padding-block: 40px 64px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: grid; gap: 56px;
-}
-h1, h2 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.3; }
-h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 900; }
-h2 { font-size: 24px; }
-h3 { margin: 0; font-size: 16px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 36px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 64px; }
+h1, h2, h3 { margin: 0; line-height: 1.3; text-wrap: balance; }
 p { margin: 0; }
-.lede { color: var(--muted); max-width: 62ch; font-size: 16px; }
-.eyebrow { font-size: 12px; letter-spacing: .12em; color: var(--accent); font-weight: 700; }
-section { display: grid; gap: 20px; }
-.sec-head { display: grid; gap: 6px; }
-.sec-head p { color: var(--muted); max-width: 62ch; }
 .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
-code { font-family: var(--f-mono); font-size: 13px; }
+section { display: grid; gap: 20px; }
+.kicker { font-size: 12px; letter-spacing: .14em; font-weight: 700; color: var(--money); }
+h2 { font-size: clamp(22px, 3vw, 30px); font-weight: 900; }
+.sub { color: var(--muted); max-width: 70ch; }
+.scroll { overflow-x: auto; }
 
-/* 开头 */
-.hero { display: grid; gap: 18px; }
-.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-.fact { border-top: 2px solid var(--ink); padding-top: 10px; display: grid; gap: 2px; }
-.fact b { font-family: var(--f-mono); font-size: 20px; font-weight: 500; }
-.fact span { color: var(--muted); font-size: 13px; }
+/* 首屏 */
+.hero { display: grid; gap: 14px; }
+.hero h1 { font-size: clamp(30px, 5vw, 50px); font-weight: 900; letter-spacing: -.01em; }
+.hero h1 em { font-style: normal; color: var(--money); }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 0; }
+.stat b { font-family: var(--f-mono); font-size: 28px; font-weight: 500; line-height: 1.2; }
+.stat span { font-size: 13px; color: var(--muted); }
 
-/* 图通用 */
-.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 24px; overflow-x: auto; }
-.box { border: 1.5px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--surface); min-width: 0; }
-.box h3 { font-size: 15px; }
-.box p { font-size: 13px; color: var(--muted); }
-.box.main { border-color: var(--accent); background: var(--accent-soft); }
-.box.hot { border-color: var(--copper); background: var(--copper-soft); }
-.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 500; white-space: nowrap; }
-.tag.c { background: var(--copper-soft); color: var(--copper); }
-.tag.g { background: var(--ok-soft); color: var(--ok); }
-.tag.w { background: var(--wait-soft); color: var(--wait); }
+/* 全貌图 */
+.map { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; min-width: 980px; display: grid; gap: 18px; }
+.layer-label { font-size: 12px; letter-spacing: .1em; font-weight: 700; color: var(--muted); }
+.ctrl { display: grid; grid-template-columns: 210px 1fr; gap: 18px; align-items: stretch; }
+.gw { border: 2px dashed var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 8px; align-content: center; text-align: center; }
+.gw b { font-size: 18px; }
+.gw .links { display: grid; gap: 6px; font-size: 12.5px; }
+.gw .links span { background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 3px 6px; }
+.pay { background: var(--navy); color: var(--navy-ink); border-radius: 12px; padding: 16px; display: grid; gap: 12px; }
+.pay > .t { display: flex; justify-content: space-between; align-items: baseline; }
+.pay > .t b { font-size: 20px; }
+.pay > .t span { font-size: 12.5px; opacity: .75; }
+.apps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.appbox { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 12px; display: grid; gap: 8px; }
+.appbox h3 { font-size: 15px; display: flex; gap: 8px; align-items: center; }
+.appbox h3 i { font-style: normal; font-size: 11px; border: 1px solid rgba(255,255,255,.3); border-radius: 4px; padding: 0 5px; opacity: .8; }
+.roles { display: flex; flex-wrap: wrap; gap: 6px; }
+.roles span { font-size: 12.5px; background: rgba(255,255,255,.1); border-radius: 999px; padding: 2px 10px; }
+.roles span.k { background: var(--money); color: #fff; }
+.core { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.core span { text-align: center; font-size: 12.5px; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; padding: 6px 4px; }
+.cmd { display: grid; grid-template-columns: 210px 1fr; gap: 18px; }
+.cmd .lines { display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; font-size: 12.5px; color: var(--accent); }
+.cmd .lines span::before { content: "▼"; display: block; font-size: 10px; }
+.rail { display: grid; grid-template-columns: 1fr 34px 1.25fr 34px 1fr 34px 1fr; align-items: center; gap: 0; }
+.node { background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 4px; text-align: center; min-height: 112px; align-content: center; }
+.node b { font-size: 16px; }
+.node small { color: var(--muted); font-size: 12.5px; }
+.node.vault { border-color: var(--money); background: var(--money-soft); }
+.tiers { display: flex; gap: 4px; justify-content: center; margin-top: 4px; }
+.tiers span { font-size: 11.5px; border-radius: 4px; padding: 0 6px; background: var(--surface); border: 1px solid var(--money); color: var(--money); }
+.arr { display: grid; place-items: center; color: var(--money); font-weight: 900; font-size: 22px; position: relative; }
+.arr small { position: absolute; top: -18px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.direct { margin-left: calc((100% - 102px) * 1 / 4.25 + 34px); margin-right: calc((100% - 102px) * 1 / 4.25 / 2); border: 2px dashed var(--money); border-top: 0; height: 18px; border-radius: 0 0 10px 10px; position: relative; }
+.direct span { position: absolute; left: 50%; transform: translateX(-50%); bottom: -22px; font-size: 12px; color: var(--money); white-space: nowrap; background: var(--surface); padding: 0 6px; }
+.legend { display: flex; gap: 18px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; margin-top: 14px; }
+.legend i { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--money); vertical-align: middle; margin-right: 6px; }
+.legend i.c { border-top: 2px dashed var(--accent); }
 
-/* 1 两套系统 */
-.twin { display: grid; grid-template-columns: 1fr 220px 1fr; gap: 16px; align-items: stretch; }
-.sys { display: grid; gap: 10px; align-content: start; }
-.sys .box.main h3 { font-family: var(--f-display); font-size: 20px; }
-.flowline { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.flowline .arr { color: var(--copper); font-weight: 700; }
-.bridge { display: grid; gap: 8px; align-content: center; }
-.bridge .b { border: 1.5px dashed var(--accent); border-radius: 8px; padding: 8px 10px; text-align: center; font-size: 13px; background: var(--surface); }
-.bridge .b small { display: block; color: var(--muted); font-size: 12px; }
-.bridge .cap { text-align: center; font-size: 12px; color: var(--muted); }
+/* 截图 */
+.shots { display: grid; grid-template-columns: 2.6fr 1fr; gap: 16px; align-items: start; }
+.shot { display: grid; gap: 8px; margin: 0; min-width: 0; }
+.shot img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(20, 29, 39, .10); background: var(--surface); }
+.shot figcaption { font-size: 13px; color: var(--muted); }
+.shot figcaption b { color: var(--ink); }
+.phone img { border-radius: 22px; border: 6px solid var(--navy); }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.cta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 14px; }
+.cta a { color: var(--accent); font-weight: 700; word-break: break-all; }
 
-/* 2 资金流向 */
-.money { display: grid; grid-template-columns: 1fr auto 1.3fr auto 1fr; gap: 12px; align-items: center; min-width: 760px; }
-.col { display: grid; gap: 10px; }
-.arrow { color: var(--copper); font-size: 13px; text-align: center; display: grid; gap: 2px; }
-.arrow i { font-style: normal; font-size: 22px; line-height: 1; }
-.core { display: grid; gap: 8px; }
-.core .mods { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.core .mods span { font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; background: var(--surface); text-align: center; }
+/* 泳道 */
+.lanes { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 1040px; display: grid; grid-template-columns: 116px repeat(8, 1fr); gap: 8px 8px; }
+.lane-h { font-weight: 700; font-size: 13.5px; display: grid; align-content: center; padding: 8px 10px; border-radius: 8px; background: var(--bg); }
+.lane-h small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+.cell { min-height: 74px; position: relative; }
+.cell::before { content: ""; position: absolute; left: -8px; right: -8px; top: 50%; border-top: 1px dashed var(--line); }
+.step { position: relative; z-index: 1; height: 100%; background: var(--surface); border: 2px solid var(--accent); border-radius: 10px; padding: 7px 9px; display: grid; gap: 2px; align-content: start; }
+.step .n { font-family: var(--f-mono); font-size: 12px; color: var(--accent); }
+.step b { font-size: 13.5px; line-height: 1.35; }
+.step small { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.step.money { border-color: var(--money); background: var(--money-soft); }
+.step.money .n { color: var(--money); }
+.step.lock::after { content: "两人把关"; position: absolute; top: -9px; right: 8px; font-size: 10.5px; background: var(--money); color: #fff; border-radius: 4px; padding: 0 5px; }
+.fails { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.fail { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; font-size: 13.5px; }
+.fail b { font-size: 14px; }
+.fail span { color: var(--muted); }
 
-/* 3 付款步骤 */
-.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; counter-reset: s; }
-.steps li { counter-increment: s; position: relative; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 14px 14px 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
-.steps li::before { content: counter(s); font-family: var(--f-mono); font-size: 13px; color: var(--surface); background: var(--ink); width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; }
-.steps li.key { border-color: var(--copper); }
-.steps li.key::before { background: var(--copper); }
-.steps h3 { font-size: 15px; }
-.steps p { font-size: 13px; color: var(--muted); }
-.steps .who { display: flex; flex-wrap: wrap; gap: 4px; }
-.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); }
-.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--ink); }
-.legend span.k::before { background: var(--copper); }
+/* 底线 */
+.rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.rule { background: var(--navy); color: var(--navy-ink); border-radius: 12px; padding: 18px; display: grid; gap: 6px; }
+.rule .ic { font-family: var(--f-mono); font-size: 13px; color: var(--money); }
+.rule b { font-size: 18px; }
+.rule span { font-size: 13.5px; opacity: .8; }
 
-/* 4 角色 */
-.roles { display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; }
-.rgroup { display: grid; gap: 10px; align-content: start; }
-.rgroup > h3 { font-size: 14px; color: var(--muted); font-weight: 500; }
-.rgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.role { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface); display: grid; gap: 2px; }
-.role b { font-size: 14px; }
-.role span { font-size: 12.5px; color: var(--muted); }
-.rule { font-size: 13px; border-left: 3px solid var(--copper); padding: 6px 12px; background: var(--copper-soft); border-radius: 0 6px 6px 0; }
-
-/* 5 钱放在哪里 */
-.vault { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
-.tiers { display: grid; gap: 8px; }
-.tier { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface); }
-.tier .lvl { font-family: var(--f-display); font-size: 18px; font-weight: 700; }
-.tier p { font-size: 13px; color: var(--muted); }
-.meter { width: 80px; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
-.meter i { display: block; height: 100%; background: var(--accent); }
-.balances { display: grid; gap: 8px; }
-.bal { display: grid; grid-template-columns: 84px 1fr; gap: 10px; align-items: baseline; font-size: 13px; border-bottom: 1px dashed var(--line); padding-bottom: 8px; }
-.bal b { font-size: 14px; }
-.eq { font-family: var(--f-mono); font-size: 13px; background: var(--accent-soft); color: var(--accent); padding: 8px 10px; border-radius: 6px; }
-
-/* 6 互通 */
-.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
-.mini { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
-.mini li { display: grid; grid-template-columns: 18px 1fr; gap: 6px; }
-.mini li::before { content: "→"; color: var(--copper); }
-.card .note { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; }
-
-/* 7 底线 */
-.guards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-.guard { display: grid; gap: 4px; padding: 12px 14px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); }
-.guard b { font-size: 14px; }
-.guard span { font-size: 13px; color: var(--muted); }
-
-/* 8 进度 */
-.track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; }
-.track li { display: grid; gap: 6px; justify-items: center; text-align: center; font-size: 13px; position: relative; padding-top: 4px; }
-.track li::before { content: ""; position: absolute; top: 13px; left: 0; right: 0; height: 2px; background: var(--line); z-index: 0; }
-.track li:first-child::before { left: 50%; }
-.track li:last-child::before { right: 50%; }
-.dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); position: relative; z-index: 1; }
-.track .done .dot { background: var(--ok); border-color: var(--ok); }
-.track .now .dot { background: var(--wait); border-color: var(--wait); }
+/* 进度 */
+.track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); }
+.track li { display: grid; justify-items: center; gap: 6px; text-align: center; position: relative; font-size: 13.5px; }
+.track li::before { content: ""; position: absolute; top: 10px; left: 0; right: 0; height: 3px; background: var(--line); }
+.track li:first-child::before { left: 50%; } .track li:last-child::before { right: 50%; }
+.track li.done::before, .track li.now::before { background: var(--ok); }
+.track li.now::before { background: linear-gradient(90deg, var(--ok) 50%, var(--line) 50%); }
+.dot { width: 22px; height: 22px; border-radius: 50%; background: var(--surface); border: 3px solid var(--line); position: relative; z-index: 1; }
+.done .dot { background: var(--ok); border-color: var(--ok); }
+.now .dot { background: var(--money); border-color: var(--money); box-shadow: 0 0 0 5px var(--money-soft); }
 .track small { color: var(--muted); font-size: 12px; }
-
-.docs { display: grid; gap: 8px; font-size: 14px; }
-.docs a { color: var(--accent); word-break: break-all; }
-footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
-
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-@media (max-width: 820px) {
-  .twin { grid-template-columns: 1fr; }
-  .bridge { grid-template-columns: 1fr 1fr 1fr; }
-  .bridge .cap { grid-column: 1 / -1; }
-  .steps { grid-template-columns: repeat(2, 1fr); }
-  .roles, .vault, .three { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .stats { grid-template-columns: repeat(3, 1fr); }
+  .shots, .duo, .trio, .rules, .fails { grid-template-columns: 1fr; }
+  .phone { max-width: 320px; justify-self: center; }
   .track { grid-template-columns: 1fr; gap: 10px; }
-  .track li { grid-template-columns: 20px 1fr; justify-items: start; text-align: left; gap: 10px; align-items: center; }
+  .track li { grid-template-columns: 22px 1fr; justify-items: start; text-align: left; align-items: center; gap: 10px; }
   .track li::before { display: none; }
 }
-@media (max-width: 480px) {
-  .steps { grid-template-columns: 1fr; }
-  .bridge { grid-template-columns: 1fr; }
-  .diagram { padding: 16px; }
-}
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (max-width: 480px) { .stats { grid-template-columns: 1fr 1fr; } }
 </style>
 
 <div class="wrap">
 
-  <header class="hero">
-    <div class="eyebrow">项目概览 · 给团队介绍用</div>
-    <h1>Payment 代付系统</h1>
-    <p class="lede">帮商户把钱付出去：商户把 USDT / USDC 充值进来，我们按场景选好 off-ramp 渠道，替商户付给合作伙伴、渠道和其他收款方，可以付多种法币，也可以直接付 USDT / USDC。</p>
-    <div class="facts">
-      <div class="fact"><b>几万 ～ 几百万 USDT</b><span>单笔付款金额</span></div>
-      <div class="fact"><b>USDT · USDC · 多种法币</b><span>付款币种，第一版一起上线</span></div>
-      <div class="fact"><b>主流公链</b><span>余额按"资产 ＋ 链"分开记</span></div>
-      <div class="fact"><b>企业为主</b><span>个人只做大额同名转账</span></div>
-    </div>
-  </header>
+<header class="hero">
+  <span class="kicker">PAYMENT 代付系统 · 项目概览</span>
+  <h1>商户充值 USDT，我们替它<em>付给全球的合作伙伴</em></h1>
+  <p class="sub">付法币或 USDT / USDC；钱在托管服务商，系统只发指令；每一笔都有两个人把关。和 Gateway 是两套系统，商户可以一键开通、余额互转。</p>
+  <div class="stats">
+    <div class="stat"><b>2</b><span>个后台：商户、运营</span></div>
+    <div class="stat"><b>10</b><span>种角色：商户 4，平台 6</span></div>
+    <div class="stat"><b>8</b><span>步走完一笔付款</span></div>
+    <div class="stat"><b>3</b><span>层钱包：热、温、冷</span></div>
+    <div class="stat"><b>4</b><span>项每天对账</span></div>
+  </div>
+</header>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">一、和 Gateway 的关系</div>
-      <h2>两套系统，一收一付，互相引流</h2>
-      <p>Gateway 帮商户收钱，Payment 帮商户付钱。两套系统、两个运营团队，各自独立；中间用三个接口连起来，商户在一边用得好，可以一键开通另一边。</p>
-    </div>
-    <div class="diagram">
-      <div class="twin">
-        <div class="sys">
-          <div class="box"><h3>Gateway（已上线）</h3><p>官网、商户入驻、收款</p></div>
-          <div class="flowline">商户的客户 <span class="arr">→ 付款 →</span> 商户</div>
-          <p style="font-size:13px;color:var(--muted)">商户在这里<strong>收</strong>钱</p>
+<section>
+  <div><span class="kicker">① 全貌</span><h2>上面是软件，下面是钱</h2></div>
+  <div class="scroll"><div class="map">
+    <span class="layer-label">软件：谁在用、在哪里操作</span>
+    <div class="ctrl">
+      <div class="gw"><b>Gateway</b><span style="font-size:13px;color:var(--muted)">已上线 · 帮商户收钱</span><div class="links"><span>⇄ 一键授权开户</span><span>⇄ 登录跳转</span><span>⇄ 余额互转</span></div></div>
+      <div class="pay">
+        <div class="t"><b>Payment 系统（本项目）</b><span>帮商户付钱</span></div>
+        <div class="apps">
+          <div class="appbox"><h3>商户后台 <i>电脑 ＋ 手机</i></h3><div class="roles"><span>管理员</span><span>提交人</span><span class="k">审批人</span><span>查看</span></div><span style="font-size:12.5px;opacity:.8">充值、收款方、新建付款、内部审批、余额互转</span></div>
+          <div class="appbox"><h3>运营后台 <i>电脑为主</i></h3><div class="roles"><span>客服</span><span>合规审核</span><span>交易员</span><span class="k">出款审批</span><span>财务</span><span>管理员</span></div><span style="font-size:12.5px;opacity:.8">审核、选渠道、批准出款、异常、清算、对账</span></div>
         </div>
-        <div class="bridge">
-          <div class="b">一键授权开户<small>推荐对方业务，资料授权共享</small></div>
-          <div class="b">登录跳转<small>一次性凭证，不用再登录</small></div>
-          <div class="b">余额互转<small>实时到账，财务发起链上结算</small></div>
-          <div class="cap">两边都可以向自己的商户推荐对方</div>
-        </div>
-        <div class="sys">
-          <div class="box main"><h3>Payment（本项目）</h3><p>充值、付款单、渠道、审批</p></div>
-          <div class="flowline">商户 <span class="arr">→ 付款 →</span> 合作伙伴、渠道</div>
-          <p style="font-size:13px;color:var(--muted)">商户在这里<strong>付</strong>钱</p>
-        </div>
+        <div class="core"><span>复式账本</span><span>报价</span><span>审批流</span><span>合规筛查</span><span>渠道适配器</span><span>钱包服务接口</span></div>
       </div>
     </div>
-  </section>
+    <div class="cmd"><span></span><div class="lines"><span>记账</span><span>发出款指令</span><span>渠道下单</span></div></div>
+    <span class="layer-label">钱：从哪里来、到哪里去</span>
+    <div class="rail">
+      <div class="node"><b>商户</b><small>充值 USDT / USDC<br>或从 Gateway 转入</small></div>
+      <div class="arr"><small>充值</small>→</div>
+      <div class="node vault"><b>托管钱包</b><small>Fireblocks 或 Cobo<br>系统不保存私钥</small><div class="tiers"><span>热</span><span>温</span><span>冷</span></div></div>
+      <div class="arr"><small>USDT</small>→</div>
+      <div class="node"><b>off-ramp 渠道</b><small>多家，接口接入<br>换成法币</small></div>
+      <div class="arr"><small>法币</small>→</div>
+      <div class="node"><b>收款方</b><small>企业银行账户<br>个人只收同名转账</small></div>
+    </div>
+    <div class="direct"><span>直接付 USDT / USDC：不经渠道，直接转到收款方地址</span></div>
+    <div class="legend"><span><i></i>钱的流向</span><span>深色框：Payment 自己的软件</span><span>铜色标签：动钱前的把关人</span></div>
+  </div></div>
+</section>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">二、钱怎么走</div>
-      <h2>从商户充值到收款方收到</h2>
-      <p>我们不自己保管私钥：链上的钱放在托管服务商那里，Payment 只发指令。法币由 off-ramp 渠道付出去。</p>
-    </div>
-    <div class="diagram">
-      <div class="money">
-        <div class="col">
-          <div class="box"><h3>商户</h3><p>充值 USDT / USDC，提交付款单</p></div>
-          <div class="box"><h3>Gateway 余额</h3><p>也可以从 Gateway 转过来</p></div>
-        </div>
-        <div class="arrow"><i>→</i>充值<br>转入</div>
-        <div class="box main core">
-          <h3>Payment 系统</h3>
-          <div class="mods">
-            <span>复式账本</span><span>报价</span>
-            <span>合规筛查</span><span>审批流</span>
-            <span>渠道适配器</span><span>钱包服务接口</span>
-          </div>
-          <div class="box hot" style="padding:8px 10px"><h3 style="font-size:13px">托管服务商（Fireblocks 或 Cobo）</h3><p>保管资产、签名；只能转白名单地址</p></div>
-        </div>
-        <div class="arrow"><i>→</i>USDT<br>USDC</div>
-        <div class="col">
-          <div class="box"><h3>off-ramp 渠道</h3><p>换成法币付出去</p></div>
-          <div class="box"><h3>收款方</h3><p>银行账户（法币）或钱包（USDT / USDC）</p></div>
-        </div>
-      </div>
-    </div>
-    <p style="font-size:13px;color:var(--muted)">价格 ＝ 渠道成本 ＋ 汇率加点 ＋ 手续费；报价锁定 15～30 分钟。USDT 和 USDC 之间的兑换用现有服务商。</p>
-  </section>
+<section>
+  <div><span class="kicker">② 长什么样</span><h2>商户后台：财务提交，负责人审批</h2><p class="sub">下面是原型的真实截图。电脑一屏看全，手机一屏一件事（页面结构不同）。</p></div>
+  <div class="shots">
+    <figure class="shot"><img src="assets/prototype-v1/d-merchant-home.png" alt="商户后台总览：余额按资产和链分开，显示已入账、处理中、可用" loading="lazy"><figcaption><b>总览</b>：余额按"资产＋链"分开；可用 ＝ 已入账 − 处理中</figcaption></figure>
+    <figure class="shot phone"><img src="assets/prototype-v1/m-merchant-home.png" alt="手机版商户总览" loading="lazy"><figcaption><b>手机版</b>：大字余额 ＋ 四个常用操作</figcaption></figure>
+  </div>
+  <div class="duo">
+    <figure class="shot"><img src="assets/prototype-v1/d-merchant-new.png" alt="新建付款：左边填写，右边实时报价" loading="lazy"><figcaption><b>新建付款</b>：左边填，右边实时报价；超过商户自己设的金额要审批</figcaption></figure>
+    <figure class="shot"><img src="assets/prototype-v1/d-merchant-detail.png" alt="付款单详情和进度" loading="lazy"><figcaption><b>付款单详情</b>：每一步谁处理、到哪了，一目了然</figcaption></figure>
+  </div>
+</section>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">三、一笔付款单的八步</div>
-      <h2>每一步谁负责</h2>
-      <p>铜色的三步动钱，都有两个人把关。</p>
-    </div>
-    <div class="legend"><span>普通步骤</span><span class="k">动钱的步骤</span></div>
-    <ol class="steps">
-      <li><h3>充值入账</h3><p>地址风险筛查通过后，记入商户余额（按资产＋链）</p><div class="who"><span class="tag">系统</span></div></li>
-      <li><h3>新建付款单</h3><p>收款方、金额、目标币种、用途、附件；系统实时报价</p><div class="who"><span class="tag c">商户提交人</span></div></li>
-      <li class="key"><h3>商户内部审批</h3><p>超过商户自己设的金额要审批；批准后冻结余额</p><div class="who"><span class="tag c">商户审批人</span></div></li>
-      <li><h3>合规审核</h3><p>新收款方尽调；个人收款方户名要和 KYC 一致；制裁和地址筛查</p><div class="who"><span class="tag">合规审核</span></div></li>
-      <li><h3>选渠道、锁报价</h3><p>付法币时，系统按成本、速度、成功率排序，交易员确认；直接付 USDT / USDC 走后台设好的路线，跳过这一步</p><div class="who"><span class="tag">交易员</span></div></li>
-      <li class="key"><h3>出款审批</h3><p>每一笔都要审批，审批人不能是提交人</p><div class="who"><span class="tag">出款审批</span></div></li>
-      <li class="key"><h3>托管签名上链</h3><p>托管服务商按自己的规则再审一次，只转白名单地址</p><div class="who"><span class="tag">托管服务商</span></div></li>
-      <li><h3>渠道付款、完成</h3><p>渠道回调成功并附凭证，正式扣款、通知商户；渠道失败会退回平台，换渠道再试，全部失败才退回商户余额</p><div class="who"><span class="tag">渠道</span><span class="tag">财务对账</span></div></li>
-    </ol>
-    <p style="font-size:13px;color:var(--muted)">任何一步出问题（渠道退回、超时、筛查报警、对账差异）都进<strong>异常队列</strong>，每项有处理时限，超时会提醒。</p>
-  </section>
+<section>
+  <div><span class="kicker">② 长什么样</span><h2>运营后台：按角色分工，各看各的待办</h2></div>
+  <div class="duo">
+    <figure class="shot"><img src="assets/prototype-v1/d-ops-home.png" alt="运营工作台：各角色待办数量和付款单所在环节" loading="lazy"><figcaption><b>工作台</b>：每个角色的待办数，付款单卡在哪一步</figcaption></figure>
+    <figure class="shot"><img src="assets/prototype-v1/d-ops-channel.png" alt="交易员选择渠道：系统排序推荐" loading="lazy"><figcaption><b>选渠道</b>：系统按"没失败过、预存款够、收益高"排序，交易员确认</figcaption></figure>
+  </div>
+  <div class="duo">
+    <figure class="shot"><img src="assets/prototype-v1/d-ops-approve.png" alt="出款审批：提交人不能审批自己的" loading="lazy"><figcaption><b>出款审批</b>：提交人不能批自己的；批准要动态码</figcaption></figure>
+    <figure class="shot"><img src="assets/prototype-v1/d-ops-settle.png" alt="Gateway 清算：财务发起结算" loading="lazy"><figcaption><b>Gateway 清算</b>：显示待结算净额，财务主动发起</figcaption></figure>
+  </div>
+  <div class="cta">可以点击操作的原型：<a href="https://claude.ai/artifact/VgNcoWZ6R4PtQh4iCJEKLC">https://claude.ai/artifact/VgNcoWZ6R4PtQh4iCJEKLC</a></div>
+</section>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">四、谁在用这套系统</div>
-      <h2>商户侧四种角色，平台侧六种角色</h2>
-    </div>
-    <div class="roles">
-      <div class="rgroup">
-        <h3>商户后台（企业商户可以有多个用户）</h3>
-        <div class="rgrid">
-          <div class="role"><b>管理员</b><span>管理用户、设审批金额（商户自己定）</span></div>
-          <div class="role"><b>提交人</b><span>新建付款单、批量导入</span></div>
-          <div class="role"><b>审批人</b><span>批准或驳回付款单</span></div>
-          <div class="role"><b>查看</b><span>只能看余额和记录</span></div>
-        </div>
-      </div>
-      <div class="rgroup">
-        <h3>运营后台（Payment 运营团队）</h3>
-        <div class="rgrid">
-          <div class="role"><b>客服 / 运营</b><span>开户跟进、商户问题</span></div>
-          <div class="role"><b>合规审核</b><span>商户和收款方尽调、付款单审核</span></div>
-          <div class="role"><b>交易员</b><span>询价、选渠道、锁报价</span></div>
-          <div class="role"><b>出款审批</b><span>批准出款</span></div>
-          <div class="role"><b>财务</b><span>渠道预存款、对账、发起和 Gateway 的结算</span></div>
-          <div class="role"><b>管理员</b><span>账号权限、渠道、费率、USDT / USDC 出款路线</span></div>
-        </div>
-      </div>
-    </div>
-    <p class="rule">同一笔付款单，提交和审批不能是同一个人；付款、审批等敏感操作都要输入动态码。</p>
-  </section>
+<section>
+  <div><span class="kicker">③ 逻辑</span><h2>一笔付款怎么走：8 步，4 方接力</h2><p class="sub">从左往右读。铜色是动钱的步骤，标"两人把关"的地方提交人和批准人必须是两个人。</p></div>
+  <div class="scroll"><div class="lanes">
+    <div class="lane-h">商户<small>提交人、审批人</small></div>
+    <div class="cell"><div class="step money"><span class="n">1</span><b>充值入账</b><small>地址风险筛查后记入余额</small></div></div>
+    <div class="cell"><div class="step"><span class="n">2</span><b>新建付款单</b><small>收款方、金额、用途、发票；锁价 15 分钟</small></div></div>
+    <div class="cell"><div class="step lock"><span class="n">3</span><b>内部审批</b><small>超过商户设的金额才要；批准后冻结余额</small></div></div>
+    <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">五、钱放在哪里、怎么记</div>
-      <h2>分层保管，每一分钱都有两条记录</h2>
-    </div>
-    <div class="vault">
-      <div class="diagram tiers">
-        <h3>托管钱包分三层</h3>
-        <div class="tier"><span class="lvl">热</span><p>日常出款，自动化程度最高，放的钱最少</p><span class="meter" title="资金占比示意：少"><i style="width:20%"></i></span></div>
-        <div class="tier"><span class="lvl">温</span><p>给热钱包补钱，需要人工审批</p><span class="meter" title="资金占比示意：中"><i style="width:45%"></i></span></div>
-        <div class="tier"><span class="lvl">冷</span><p>大部分资金，多人审批、离线签名</p><span class="meter" title="资金占比示意：多"><i style="width:90%"></i></span></div>
-        <p style="font-size:12.5px;color:var(--muted)">条形是资金多少的示意，不是实际比例。托管服务商在 Fireblocks 和 Cobo 之间做对比测试后再定。</p>
-      </div>
-      <div class="diagram balances">
-        <h3>账本：每个账户三个余额</h3>
-        <div class="bal"><b>已入账</b><span>链上确认、已经属于商户的钱</span></div>
-        <div class="bal"><b>处理中</b><span>已提交、还没完成的付款单冻结的钱</span></div>
-        <div class="bal"><b>可用</b><span>商户现在能用来付款的钱</span></div>
-        <div class="eq">可用 ＝ 已入账 − 处理中</div>
-        <p style="font-size:12.5px;color:var(--muted)">复式记账：每笔变动同时记借方和贷方。每天和托管服务商、每个渠道、Gateway 对账，不平就进异常队列。</p>
-      </div>
-    </div>
-  </section>
+    <div class="lane-h">平台运营<small>合规、交易员、出款审批</small></div>
+    <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+    <div class="cell"><div class="step"><span class="n">4</span><b>合规审核</b><small>收款方尽调、用途、制裁筛查</small></div></div>
+    <div class="cell"><div class="step"><span class="n">5</span><b>选渠道</b><small>只有付法币才要；直付 USDT / USDC 跳过</small></div></div>
+    <div class="cell"><div class="step lock money"><span class="n">6</span><b>批准出款</b><small>审批人 ≠ 提交人</small></div></div>
+    <div class="cell"></div><div class="cell"></div>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">六、和 Gateway 互通的三件事</div>
-      <h2>像嵌在对方系统里一样</h2>
-      <p>开通后，后续服务都由对方的系统提供。下面以 Gateway 推荐 Payment 为例，反过来也一样。</p>
-    </div>
-    <div class="three">
-      <div class="card">
-        <span class="tag">一键授权开户</span>
-        <ul class="mini">
-          <li>Gateway 后台显示 Payment 推荐卡片</li>
-          <li>商户同意共享资料，输入动态码</li>
-          <li>Payment 收到预填好的申请</li>
-          <li>商户只补 Payment 特有的资料</li>
-          <li>Payment 合规审核，结果回传 Gateway</li>
-        </ul>
-        <p class="note">资料只在商户同意后共享，记录谁、什么时候、共享了哪些。</p>
-      </div>
-      <div class="card">
-        <span class="tag">登录跳转</span>
-        <ul class="mini">
-          <li>Gateway 后台点"进入 Payment"</li>
-          <li>Gateway 生成一次性登录凭证</li>
-          <li>Payment 校验后直接进入商户后台</li>
-          <li>第一次进入默认只能查看</li>
-        </ul>
-        <p class="note">付款、审批等敏感操作仍要 Payment 自己的动态码。</p>
-      </div>
-      <div class="card">
-        <span class="tag c">余额互转</span>
-        <ul class="mini">
-          <li>商户把 Gateway 余额转到 Payment</li>
-          <li>两边实时记账，马上能用</li>
-          <li>两边各有一个"清算账户"记互相欠多少</li>
-          <li>财务在后台看到待结算金额，主动发起链上结算</li>
-        </ul>
-        <p class="note">按资产＋链分开结算，跨链费用单独算；程序每天核对两边账，对不上就不能结算、人工核对。</p>
-      </div>
-    </div>
-  </section>
+    <div class="lane-h">托管服务商<small>保管资产、签名</small></div>
+    <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+    <div class="cell"><div class="step money"><span class="n">7</span><b>按自己的规则再审、签名上链</b><small>只能转白名单地址</small></div></div>
+    <div class="cell"></div>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">七、不能碰的底线</div>
-      <h2>安全规则</h2>
-    </div>
-    <div class="guards">
-      <div class="guard"><b>系统不保存私钥</b><span>签名都在托管服务商那里完成</span></div>
-      <div class="guard"><b>只转白名单地址</b><span>渠道和收款方地址先审核、再加入白名单</span></div>
-      <div class="guard"><b>每笔出款两道审批</b><span>平台审批人 ＋ 托管服务商的规则</span></div>
-      <div class="guard"><b>收款方先尽调</b><span>个人只收同名转账，户名要和 KYC 一致</span></div>
-      <div class="guard"><b>操作留痕</b><span>每个审批、修改都有审计记录</span></div>
-      <div class="guard"><b>每天对账</b><span>托管、渠道、Gateway、总账四项都要平</span></div>
-    </div>
-  </section>
+    <div class="lane-h">渠道<small>off-ramp</small></div>
+    <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+    <div class="cell"><div class="step money"><span class="n">8</span><b>付出法币，回传凭证</b><small>完成后正式扣款、通知商户</small></div></div>
+  </div></div>
+  <div class="fails">
+    <div class="fail"><b>渠道失败怎么办？</b><span>钱退回平台 → 回到第 5 步换一个渠道再付；所有渠道都失败，付款单才算失败，商户余额自动恢复。</span></div>
+    <div class="fail"><b>报价过期怎么办？</b><span>商户内部审批超过 15 分钟，报价失效，重新报价后再审批。</span></div>
+    <div class="fail"><b>卡住了谁知道？</b><span>超时、筛查报警、对账差异都进异常队列，每项有处理时限，快到期提醒负责的角色。</span></div>
+  </div>
+</section>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">八、现在到哪一步</div>
-      <h2>方案和流程图已定，正在做原型</h2>
-      <p>团队确认一切稳妥后才开始开发。</p>
-    </div>
-    <div class="diagram">
-      <ol class="track">
-        <li class="done"><span class="dot"></span><span>架构方案</span><small>已确认</small></li>
-        <li class="done"><span class="dot"></span><span>流程图</span><small>已答复</small></li>
-        <li class="now"><span class="dot"></span><span>原型</span><small>商户端、运营端</small></li>
-        <li><span class="dot"></span><span>团队确认</span><small>Amos 和团队</small></li>
-        <li><span class="dot"></span><span>开发</span><small>含托管服务商对比测试</small></li>
-        <li><span class="dot"></span><span>测试环境验收</span><small>Amos 验收</small></li>
-        <li><span class="dot"></span><span>上线</span><small></small></li>
-      </ol>
-    </div>
-    <p style="font-size:13px;color:var(--muted)">还没定的事：托管服务商选哪家、部署平台、推荐分成、Gateway 那边要做的改动。</p>
-  </section>
+<section>
+  <div><span class="kicker">④ 和 Gateway</span><h2>一个商户，两套系统，像一个产品</h2></div>
+  <div class="trio">
+    <div class="fail"><b>一键授权开户</b><span>Gateway 后台推荐 Payment → 商户同意共享公司资料 → Payment 收到预填好的申请，商户只补几项 → 审核结果回传 Gateway。</span></div>
+    <div class="fail"><b>登录跳转</b><span>商户后台顶部有 Gateway / Payment 切换；点一下用一次性凭证进入对方后台，不用再登录。付款等敏感操作仍要动态码。</span></div>
+    <div class="fail"><b>余额互转 ＋ 财务结算</b><span>商户把 Gateway 收到的钱转过来，马上能付款。两边各记一本清算账，财务在后台看到待结算金额，主动发起链上结算。</span></div>
+  </div>
+</section>
 
-  <section>
-    <div class="sec-head">
-      <div class="eyebrow">详细文档</div>
-      <h2>想看细节</h2>
-    </div>
-    <div class="docs">
-      <div>架构方案：<a href="https://github.com/dollar3651314/amospayment/blob/claude/four-agent-collaboration-framework-c61foy/技术方案/v1-架构方案.md">https://github.com/dollar3651314/amospayment/blob/claude/four-agent-collaboration-framework-c61foy/技术方案/v1-架构方案.md</a></div>
-      <div>流程图（7 张）：<a href="https://github.com/dollar3651314/amospayment/blob/claude/four-agent-collaboration-framework-c61foy/技术方案/v1-流程图.md">https://github.com/dollar3651314/amospayment/blob/claude/four-agent-collaboration-framework-c61foy/技术方案/v1-流程图.md</a></div>
-    </div>
-  </section>
+<section>
+  <div><span class="kicker">⑤ 底线</span><h2>三条不能碰的规则</h2></div>
+  <div class="rules">
+    <div class="rule"><span class="ic">01 · 资产</span><b>系统不碰私钥</b><span>钱放在托管服务商（热、温、冷三层），系统只能发指令，只能转到白名单地址。</span></div>
+    <div class="rule"><span class="ic">02 · 审批</span><b>每笔出款两道关</b><span>平台审批人（不能是提交人）＋ 托管服务商自己的规则；商户侧还可以再加一道内部审批。</span></div>
+    <div class="rule"><span class="ic">03 · 账</span><b>每天对平四本账</b><span>托管钱包、每个渠道、Gateway 清算、总账；不平就进异常队列，Gateway 清算对不上时不能结算。</span></div>
+  </div>
+</section>
 
-  <footer>Payment 代付系统 · 项目概览 v1.1 · 2026-10-23 · 依据《系统架构方案 v1》（Amos 2026-10-23 确认）</footer>
+<section>
+  <div><span class="kicker">⑥ 进度</span><h2>现在在做原型，团队确认后才开发</h2></div>
+  <ol class="track">
+    <li class="done"><span class="dot"></span><span>架构方案</span><small>已确认</small></li>
+    <li class="done"><span class="dot"></span><span>流程图</span><small>已确认</small></li>
+    <li class="now"><span class="dot"></span><span>原型</span><small>请团队试用</small></li>
+    <li><span class="dot"></span><span>团队确认</span><small></small></li>
+    <li><span class="dot"></span><span>开发</span><small>含托管服务商对比测试</small></li>
+    <li><span class="dot"></span><span>测试环境验收</span><small></small></li>
+    <li><span class="dot"></span><span>上线</span><small></small></li>
+  </ol>
+  <p class="sub" style="font-size:13.5px">还没定：托管服务商选哪家、部署平台、推荐分成、Gateway 那边的配套改动。</p>
+</section>
+
+<footer>Payment 代付系统 · 项目概览 v2 · 2026-10-23 · 截图来自原型 v1，数据是模拟的 · 详细文档：仓库 dollar3651314/amospayment 的 技术方案/v1-架构方案.md、技术方案/v1-流程图.md</footer>
 </div>
