@@ -214,7 +214,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         <div class="bridge">
           <div class="b">一键授权开户<small>推荐对方业务，资料授权共享</small></div>
           <div class="b">登录跳转<small>一次性凭证，不用再登录</small></div>
-          <div class="b">余额互转<small>实时到账，每天链上结算</small></div>
+          <div class="b">余额互转<small>实时到账，财务发起链上结算</small></div>
           <div class="cap">两边都可以向自己的商户推荐对方</div>
         </div>
         <div class="sys">
@@ -270,10 +270,10 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <li><h3>新建付款单</h3><p>收款方、金额、目标币种、用途、附件；系统实时报价</p><div class="who"><span class="tag c">商户提交人</span></div></li>
       <li class="key"><h3>商户内部审批</h3><p>超过商户自己设的金额要审批；批准后冻结余额</p><div class="who"><span class="tag c">商户审批人</span></div></li>
       <li><h3>合规审核</h3><p>新收款方尽调；个人收款方户名要和 KYC 一致；制裁和地址筛查</p><div class="who"><span class="tag">合规审核</span></div></li>
-      <li><h3>选渠道、锁报价</h3><p>系统按成本、速度、成功率排序，交易员确认</p><div class="who"><span class="tag">交易员</span></div></li>
+      <li><h3>选渠道、锁报价</h3><p>付法币时，系统按成本、速度、成功率排序，交易员确认；直接付 USDT / USDC 走后台设好的路线，跳过这一步</p><div class="who"><span class="tag">交易员</span></div></li>
       <li class="key"><h3>出款审批</h3><p>每一笔都要审批，审批人不能是提交人</p><div class="who"><span class="tag">出款审批</span></div></li>
       <li class="key"><h3>托管签名上链</h3><p>托管服务商按自己的规则再审一次，只转白名单地址</p><div class="who"><span class="tag">托管服务商</span></div></li>
-      <li><h3>渠道付款、完成</h3><p>渠道回调成功并附凭证；正式扣款，通知商户</p><div class="who"><span class="tag">渠道</span><span class="tag">财务对账</span></div></li>
+      <li><h3>渠道付款、完成</h3><p>渠道回调成功并附凭证，正式扣款、通知商户；渠道失败会退回平台，换渠道再试，全部失败才退回商户余额</p><div class="who"><span class="tag">渠道</span><span class="tag">财务对账</span></div></li>
     </ol>
     <p style="font-size:13px;color:var(--muted)">任何一步出问题（渠道退回、超时、筛查报警、对账差异）都进<strong>异常队列</strong>，每项有处理时限，超时会提醒。</p>
   </section>
@@ -287,7 +287,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <div class="rgroup">
         <h3>商户后台（企业商户可以有多个用户）</h3>
         <div class="rgrid">
-          <div class="role"><b>管理员</b><span>管理用户、设审批金额</span></div>
+          <div class="role"><b>管理员</b><span>管理用户、设审批金额（商户自己定）</span></div>
           <div class="role"><b>提交人</b><span>新建付款单、批量导入</span></div>
           <div class="role"><b>审批人</b><span>批准或驳回付款单</span></div>
           <div class="role"><b>查看</b><span>只能看余额和记录</span></div>
@@ -300,8 +300,8 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
           <div class="role"><b>合规审核</b><span>商户和收款方尽调、付款单审核</span></div>
           <div class="role"><b>交易员</b><span>询价、选渠道、锁报价</span></div>
           <div class="role"><b>出款审批</b><span>批准出款</span></div>
-          <div class="role"><b>财务</b><span>渠道预存款、对账、结算</span></div>
-          <div class="role"><b>管理员</b><span>账号权限、渠道和费率配置</span></div>
+          <div class="role"><b>财务</b><span>渠道预存款、对账、发起和 Gateway 的结算</span></div>
+          <div class="role"><b>管理员</b><span>账号权限、渠道、费率、USDT / USDC 出款路线</span></div>
         </div>
       </div>
     </div>
@@ -366,9 +366,9 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
           <li>商户把 Gateway 余额转到 Payment</li>
           <li>两边实时记账，马上能用</li>
           <li>两边各有一个"清算账户"记互相欠多少</li>
-          <li>每天按净额在链上结算一次</li>
+          <li>财务在后台看到待结算金额，主动发起链上结算</li>
         </ul>
-        <p class="note">按资产＋链分开结算，跨链费用单独算；两边对不上就暂停结算、人工核对。</p>
+        <p class="note">按资产＋链分开结算，跨链费用单独算；程序每天核对两边账，对不上就不能结算、人工核对。</p>
       </div>
     </div>
   </section>
@@ -391,14 +391,14 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   <section>
     <div class="sec-head">
       <div class="eyebrow">八、现在到哪一步</div>
-      <h2>方案已定，正在出流程图和原型</h2>
+      <h2>方案和流程图已定，正在做原型</h2>
       <p>团队确认一切稳妥后才开始开发。</p>
     </div>
     <div class="diagram">
       <ol class="track">
         <li class="done"><span class="dot"></span><span>架构方案</span><small>已确认</small></li>
-        <li class="now"><span class="dot"></span><span>流程图</span><small>待确认</small></li>
-        <li><span class="dot"></span><span>原型</span><small>商户端、运营端</small></li>
+        <li class="done"><span class="dot"></span><span>流程图</span><small>已答复</small></li>
+        <li class="now"><span class="dot"></span><span>原型</span><small>商户端、运营端</small></li>
         <li><span class="dot"></span><span>团队确认</span><small>Amos 和团队</small></li>
         <li><span class="dot"></span><span>开发</span><small>含托管服务商对比测试</small></li>
         <li><span class="dot"></span><span>测试环境验收</span><small>Amos 验收</small></li>
@@ -419,5 +419,5 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </div>
   </section>
 
-  <footer>Payment 代付系统 · 项目概览 v1 · 2026-10-23 · 依据《系统架构方案 v1》（Amos 2026-10-23 确认）</footer>
+  <footer>Payment 代付系统 · 项目概览 v1.1 · 2026-10-23 · 依据《系统架构方案 v1》（Amos 2026-10-23 确认）</footer>
 </div>
