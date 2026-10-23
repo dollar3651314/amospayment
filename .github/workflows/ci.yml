@@ -1,0 +1,47 @@
+# 每个 PR 的自动检查（agents 规则 C54、C74）。现在只有文档，只跑基本检查；开始开发后按 agents 仓库 模板/ci.yml 加上前端、后端、重检查和路径过滤。
+# 分支保护只把汇总 job "ci-ok" 设为"必须通过"。
+name: ci
+on:
+  pull_request:
+    branches: [staging, main]
+  push:
+    branches: [staging, main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  # 基本检查：项目地图和索引、密钥扫描。
+  basic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: 项目地图和索引检查（C53）
+        run: node scripts/check-project-index.mjs
+      - name: 密钥扫描（仓库里不能出现密钥的值）
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 汇总：分支保护只把这一项设为"必须通过"。
+  ci-ok:
+    needs: [basic]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: 汇总结果
+        run: |
+          echo '${{ toJSON(needs) }}'
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
+            echo "有检查失败、被取消或被跳过"; exit 1
+          fi
