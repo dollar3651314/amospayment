@@ -625,7 +625,7 @@ function mTeam() {
   const body = `<div class="card"><div class="row sb"><h2>审批金额</h2>${admin ? '' : '<span class="pill gray">只有管理员能改</span>'}</div>
       <div class="field"><label for="limit">付款单扣款超过这个金额，要审批人批准后才提交给平台（USDT）</label><div class="row"><input id="limit" class="num" style="max-width:200px" value="${S.limit}" ${admin ? '' : 'disabled'}>${admin ? '<button class="btn pri" data-act="save-limit">保存（需要动态码）</button>' : ''}</div><span class="hint">由你们自己决定，平台不设下限；填 0 表示每一笔都要审批</span></div></div>
     <div class="card flat"><div class="row sb" style="padding:14px 16px 0"><h2>团队成员</h2>${admin ? '<button class="btn sm" data-act="noop">邀请成员</button>' : ''}</div><div class="tw"><table><thead><tr><th>姓名</th><th>角色</th><th>能做什么</th><th>动态码</th></tr></thead><tbody>
-      <tr><td>林晓</td><td>管理员</td><td>管理成员、改审批金额，也能提交和审批（不能审批自己提交的）</td><td><span class="pill ok">已绑定</span></td></tr>
+      <tr><td>林晓</td><td>管理员</td><td>什么都能做：管理成员、改审批金额、提交、审批（包括审批自己提交的）</td><td><span class="pill ok">已绑定</span></td></tr>
       <tr><td>何静</td><td>提交人</td><td>新建付款单、添加收款方</td><td><span class="pill ok">已绑定</span></td></tr>
       <tr><td>孙涛</td><td>审批人</td><td>批准或驳回付款单</td><td><span class="pill ok">已绑定</span></td></tr>
       <tr><td>王审计</td><td>查看</td><td>只能看余额和记录</td><td><span class="pill gray">未绑定</span></td></tr>
@@ -872,7 +872,7 @@ function act(a, el) {
       S.draft = null; S.mstep = 1; go('m-po.' + nid); toast(st === 'm_approval' ? '已提交，等你们的审批人批准' : '已提交给平台审核，余额已冻结');
     },
     'm-approve': () => {
-      if (o.maker === S.mUser) { toast('不能审批自己提交的付款单'); return; }
+      if (o.maker === S.mUser && mu().role !== 'admin') { toast('不能审批自己提交的付款单'); return; }
       modal({ title: `批准 ${o.id}`, body: `<p class="small">批准后提交给平台，冻结 <b class="num">${fmt(o.usdt)}</b> ${o.pay}。</p>`, otp: true, ok: '批准', run: () => { if (o.usdt > avail(o.pay)) { toast('可用余额不够，不能批准'); return; } setStatus(o, 'compliance'); o.mapprover = S.mUser; toast('已批准，已提交给平台'); } });
     },
     'm-reject': () => modal({ title: `驳回 ${o.id}`, input: '驳回原因（提交人会看到）', ok: '驳回', danger: true, run: () => { setStatus(o, 'rejected'); toast('已驳回，提交人会收到通知'); } }),
