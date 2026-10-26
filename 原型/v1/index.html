@@ -212,9 +212,6 @@ tr.click:hover td { background: var(--sunk); }
 (() => {
 'use strict';
 
-// 品牌名只放在这里：上线前用工作名称 Quick Come，正式上线前再改（agents C93）
-const BRAND = 'Quick Come';
-
 // ---------- 基础数据（模拟） ----------
 const ASSETS = ['USDT·TRON', 'USDT·Ethereum', 'USDC·Ethereum', 'USDC·Solana', 'USDT·BNB Chain'];
 const FIAT = { USD: 0.9990, EUR: 0.9210, GBP: 0.7860, HKD: 7.7710, AED: 3.6690, SGD: 1.3420 };
@@ -397,7 +394,7 @@ const apprCount = () => myOrders().filter(o => o.status === 'm_approval').length
 
 function mShellDesk(body, active) {
   const nav = MNAV.map(([r, t]) => `<a class="nav ${active === r ? 'on' : ''}" href="#${r}"><span>${t}</span>${r === 'm-approvals' && apprCount() ? `<span class="cnt">${apprCount()}</span>` : ''}</a>`).join('');
-  return `<div class="app"><aside class="side"><div class="brand"><i></i>${BRAND} Payment</div><div class="grp">商户后台</div>${nav}<div class="grp">原型</div><a class="nav" href="#start">返回原型入口</a></aside>
+  return `<div class="app"><aside class="side"><div class="brand"><i></i>Payment</div><div class="grp">商户后台</div>${nav}<div class="grp">原型</div><a class="nav" href="#start">返回原型入口</a></aside>
   <div class="main"><header class="top">
     <div class="switcher" role="group" aria-label="产品切换"><button data-act="to-gateway">Gateway</button><button class="on">Payment</button></div>
     <span class="envtag">原型</span><span class="muted small">${esc(MERCHANT.name)}</span><span class="sp"></span>
@@ -664,7 +661,7 @@ function oShellDesk(body, active) {
   if (isM()) { const t = ONAV.flatMap(([, i]) => i).find(([r]) => r === active); return oShellMob(body, t ? t[1] : '运营后台', { back: 'o-more', tab: 'o-more' }); }
   const cnt = { 'o-orders': ORDERS.filter(o => ORole[o.status]).length, 'o-exc': excOpen().length, 'o-benes': S.benes.filter(b => b.status === 'review').length, 'o-merchants': MERCHANTS.filter(m => m.st !== 'ok').length };
   const nav = ONAV.map(([g, items]) => `<div class="grp">${g}</div>` + items.map(([r, t]) => `<a class="nav ${active === r ? 'on' : ''}" href="#${r}"><span>${t}</span>${cnt[r] ? `<span class="cnt">${cnt[r]}</span>` : ''}</a>`).join('')).join('');
-  return `<div class="app"><aside class="side"><div class="brand"><i></i>${BRAND} Payment 运营</div>${nav}<div class="grp">原型</div><a class="nav" href="#start">返回原型入口</a></aside>
+  return `<div class="app"><aside class="side"><div class="brand"><i></i>Payment 运营</div>${nav}<div class="grp">原型</div><a class="nav" href="#start">返回原型入口</a></aside>
   <div class="main"><header class="top"><span class="envtag">原型</span><span class="muted small">运营后台</span><span class="sp"></span>
     <label class="who">当前员工 <select id="ouser">${Object.entries(OUSERS).map(([k, u]) => `<option value="${k}" ${k === S.oUser ? 'selected' : ''}>${u.name}（${u.label}）</option>`).join('')}</select></label></header>
   <div class="content">${body}</div></div></div>`;
