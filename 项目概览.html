@@ -162,7 +162,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <div class="pay">
         <div class="t"><b>Payment 系统（本项目）</b><span>帮商户付钱</span></div>
         <div class="apps">
-          <div class="appbox"><h3>商户后台 <i>电脑 ＋ 手机</i></h3><div class="roles"><span>管理员</span><span>提交人</span><span class="k">审批人</span><span>查看</span></div><span style="font-size:12.5px;opacity:.8">充值、收款方、新建付款、内部审批、余额互转</span></div>
+          <div class="appbox"><h3>商户后台 <i>电脑 ＋ 手机</i></h3><div class="roles"><span>管理员</span><span>提交人</span><span class="k">审批人</span><span>查看</span></div><span style="font-size:12.5px;opacity:.8">充值、提币、收款方、新建付款、内部审批、余额互转</span></div>
           <div class="appbox"><h3>运营后台 <i>电脑为主</i></h3><div class="roles"><span>客服</span><span>合规审核</span><span>交易员</span><span class="k">出款审批</span><span>财务</span><span>管理员</span></div><span style="font-size:12.5px;opacity:.8">审核、选渠道、批准出款、异常、清算、对账</span></div>
         </div>
         <div class="core"><span>复式账本</span><span>报价</span><span>审批流</span><span>合规筛查</span><span>渠道适配器</span><span>钱包服务接口</span></div>
@@ -171,8 +171,8 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <div class="cmd"><span></span><div class="lines"><span>记账</span><span>发出款指令</span><span>渠道下单</span></div></div>
     <span class="layer-label">钱：从哪里来、到哪里去</span>
     <div class="rail">
-      <div class="node"><b>商户</b><small>充值 USDT / USDC<br>或从 Gateway 转入</small></div>
-      <div class="arr"><small>充值</small>→</div>
+      <div class="node"><b>商户</b><small>充值 USDT / USDC，或从 Gateway 转入<br>多余的钱可以提币</small></div>
+      <div class="arr"><small>充值 / 提币</small>⇄</div>
       <div class="node vault"><b>托管钱包</b><small>Fireblocks 或 Cobo<br>系统不保存私钥</small><div class="tiers"><span>热</span><span>温</span><span>冷</span></div></div>
       <div class="arr"><small>USDT</small>→</div>
       <div class="node"><b>off-ramp 渠道</b><small>多家，接口接入<br>换成法币</small></div>
