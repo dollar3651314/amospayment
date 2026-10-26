@@ -262,7 +262,13 @@ const BENES = [
   { id: 'B4', name: 'Orbit Exchange 收款地址', type: 'wallet', cur: 'USDT', acct: 'TRON · TQ8n…v3Kd', country: '—', status: 'ok', merchant: 'M-10086' },
   { id: 'B5', name: 'Kestrel Logistics Ltd', type: 'ent', cur: 'HKD', acct: 'Bank of China HK · 012-****-5521', country: '中国香港', status: 'review', merchant: 'M-10086' },
   { id: 'B6', name: 'Sakura Parts KK', type: 'ent', cur: 'USD', acct: 'MUFG · ****7781', country: '日本', status: 'review', merchant: 'M-20031' },
+  // 商户自己的提币地址（type: own）：添加后有 24 小时冷静期，期间平台做地址筛查
+  { id: 'A1', name: '海川 冷钱包', type: 'own', cur: 'USDT', asset: 'USDT·TRON', acct: 'TRON · TLa2…9fQx', country: '—', status: 'ok', merchant: 'M-10086' },
+  { id: 'A2', name: '海川 财务钱包', type: 'own', cur: 'USDC', asset: 'USDC·Ethereum', acct: 'Ethereum · 0x71b…e04C', country: '—', status: 'ok', merchant: 'M-10086' },
+  { id: 'A3', name: '海川 新钱包', type: 'own', cur: 'USDT', asset: 'USDT·Ethereum', acct: 'Ethereum · 0x9d2…77aB', country: '—', status: 'cool', until: '10-27 09:30', merchant: 'M-10086' },
 ];
+const WFEE = { TRON: 1.5, Ethereum: 6, Solana: 0.5, 'BNB Chain': 0.8 };   // 提币网络费（模拟）
+function mkWd(o) { const fee = WFEE[o.pay.split('·')[1]]; return Object.assign({ merchant: 'M-10086', mname: MERCHANT.name, kind: 'withdraw', cur: o.pay.split('·')[0], tried: [], quoteExp: now + 15 * MIN, purpose: '提币到自己的钱包', fee, cost: 1, rate: 1, usdt: o.amt + fee }, o); }
 
 function mkOrder(o) {
   const q = quoteFor(o.cur, o.amt, o.pay);
@@ -279,6 +285,8 @@ let ORDERS = [
   mkOrder({ id: 'PO-24112', bene: 'B5', cur: 'HKD', amt: 800000, pay: 'USDT·TRON', status: 'failed', maker: 'he', mapprover: 'sun', tried: ['harbor', 'lotus'], purpose: '物流费', created: '10-21 15:10' }),
   mkOrder({ id: 'PO-24105', bene: 'B2', cur: 'EUR', amt: 230000, pay: 'USDT·Ethereum', status: 'done', maker: 'he', mapprover: 'sun', channel: 'meridian', purpose: '设备尾款', created: '10-20 10:00' }),
   mkOrder({ id: 'PO-24123', merchant: 'M-20031', mname: '蓝湾科技有限公司', bene: 'B6', cur: 'USD', amt: 75000, pay: 'USDT·TRON', status: 'compliance', maker: 'x', purpose: '软件授权费', created: '10-23 13:48' }),
+  mkWd({ id: 'WD-0032', bene: 'A1', amt: 600000, pay: 'USDT·TRON', status: 'payout_approval', maker: 'lin', mapprover: 'lin', opMaker: 'wang', created: '10-23 13:20' }),
+  mkWd({ id: 'WD-0031', bene: 'A2', amt: 120000, pay: 'USDC·Ethereum', status: 'done', maker: 'he', mapprover: 'sun', opMaker: 'wang', opApprover: 'zhao', created: '10-21 16:05' }),
   mkOrder({ id: 'PO-24124', merchant: 'M-20031', mname: '蓝湾科技有限公司', bene: 'B6', cur: 'USD', amt: 1200000, pay: 'USDC·Solana', status: 'channel', maker: 'x', purpose: '代工厂结算', created: '10-23 14:10' }),
 ];
 const POSTED = { 'USDT·TRON': 6850000, 'USDT·Ethereum': 1200000, 'USDC·Ethereum': 860000, 'USDC·Solana': 0, 'USDT·BNB Chain': 0 };
@@ -332,7 +340,7 @@ const S = {
   route: 'start', mUser: 'he', oUser: 'wang', lang: 'zh', newMerchant: false, guideSeen: false,
   modal: null, toast: null, draft: null, bulk: null, filter: 'all', ofilter: 'todo', chSel: null,
   benes: BENES.map(b => ({ ...b })), settle: SETTLE.map(s => ({ ...s })), settleHist: SETTLE_HIST.slice(), excDone: {},
-  posted: { ...POSTED }, limit: MERCHANT.limit, kyb: 'ok', transferDir: 'g2p', mstep: 1,
+  posted: { ...POSTED }, limit: MERCHANT.limit, kyb: 'ok', transferDir: 'g2p', mstep: 1, hasGateway: true, wtab: 'withdraw', wd: null,
 };
 const mq = matchMedia('(max-width: 760px)');
 const isM = () => mq.matches;
@@ -343,6 +351,9 @@ const fmt = (n, d = 2) => Number(n).toLocaleString('en-US', { minimumFractionDig
 const bene = id => S.benes.find(b => b.id === id);
 const ch = id => CHANNELS.find(c => c.id === id);
 const myOrders = () => S.newMerchant ? [] : ORDERS.filter(o => o.merchant === 'M-10086');
+const myPayouts = () => myOrders().filter(o => !o.kind);
+const myWds = () => myOrders().filter(o => o.kind === 'withdraw');
+const kindName = o => o.kind === 'withdraw' ? '提币' : '付款单';
 function pending(asset) { return myOrders().filter(o => o.pay === asset && FROZEN.includes(o.status)).reduce((a, o) => a + o.usdt, 0); }
 function posted(asset) { return S.newMerchant ? 0 : S.posted[asset]; }
 const avail = a => posted(a) - pending(a);
@@ -385,7 +396,7 @@ function toast(t) { S.toast = t; renderOverlay(); clearTimeout(toast.t); toast.t
 // ---------- 商户后台 ----------
 const MNAV = [
   ['m-home', '总览', 'home'], ['m-new', '新建付款', 'send'], ['m-payouts', '付款记录', 'list'], ['m-approvals', '待我审批', 'check'],
-  ['m-benes', '收款方', 'people'], ['m-deposit', '充值', 'down'], ['m-transfer', '余额互转', 'swap'], ['m-team', '团队和审批设置', 'user'], ['m-onboarding', '开户资料', 'user'],
+  ['m-benes', '收款方', 'people'], ['m-deposit', '充值', 'down'], ['m-withdraw', '提币和互转', 'swap'], ['m-team', '团队和审批设置', 'user'], ['m-onboarding', '开户资料', 'user'],
 ];
 const mu = () => MUSERS[S.mUser];
 const canApprove = () => ['approver', 'admin'].includes(mu().role);
@@ -416,19 +427,19 @@ function balRows() {
 function mHome() {
   const rows = balRows();
   const tot = rows.reduce((a, r) => a + avail(r), 0);
-  const recent = myOrders().slice(0, 5);
+  const recent = myPayouts().slice(0, 5);
   if (isM()) {
     const cards = rows.length ? rows.map(a => `<div class="card"><div class="row sb">${coin(a)}<a class="small" href="#m-deposit">充值</a></div><div class="bal3"><div class="av"><small>可用</small><b>${fmt(avail(a))}</b></div><div><small>处理中</small><b>${fmt(pending(a))}</b></div><div><small>已入账</small><b>${fmt(posted(a))}</b></div></div></div>`).join('') : emptyBal();
     const body = `${S.kyb !== 'ok' || S.newMerchant ? onboardBanner() : ''}
       <div class="card"><span class="muted small">可用余额合计（USDT ＋ USDC）</span><span class="big">${fmt(tot)}</span><span class="small muted">处理中的付款单冻结的钱不算在可用里</span></div>
-      <div class="mactions"><a href="#m-new">${ICON.send}付款</a><a href="#m-deposit">${ICON.down}充值</a><a href="#m-transfer">${ICON.swap}互转</a><a href="#m-benes">${ICON.people}收款方</a></div>
+      <div class="mactions"><a href="#m-new">${ICON.send}付款</a><a href="#m-deposit">${ICON.down}充值</a><a href="#m-withdraw">${ICON.swap}提币</a><a href="#m-benes">${ICON.people}收款方</a></div>
       ${apprCount() ? `<a class="note cop" href="#m-approvals">有 ${apprCount()} 笔付款单等你们审批 →</a>` : ''}
       <h2>各资产余额</h2>${cards}
       <div class="row sb"><h2>最近付款</h2><a class="small" href="#m-payouts">全部</a></div>${recent.length ? `<div class="mlist">${recent.map(mItem).join('')}</div>` : `<div class="card empty"><b>还没有付款记录</b><span class="small">充值到账后就可以新建付款单</span></div>`}`;
     return mShellMob(body, '总览', { tab: 'm-home' });
   }
   const table = rows.length ? `<div class="card flat"><div class="tw"><table><thead><tr><th>资产 · 链</th><th class="r">已入账</th><th class="r">处理中（冻结）</th><th class="r">可用</th><th></th></tr></thead><tbody>${rows.map(a => `<tr><td>${coin(a)}</td><td class="r num">${fmt(posted(a))}</td><td class="r num">${fmt(pending(a))}</td><td class="r num"><b>${fmt(avail(a))}</b></td><td class="r"><a class="btn sm" href="#m-deposit">充值</a> <a class="btn sm" href="#m-new">付款</a></td></tr>`).join('')}</tbody></table></div></div>` : emptyBal();
-  const body = `<div class="phead"><div><h1>总览</h1><p>余额按"资产 ＋ 链"分开记；可用 ＝ 已入账 − 处理中</p></div><div class="row"><a class="btn" href="#m-deposit">充值</a><a class="btn" href="#m-transfer">从 Gateway 转入</a><a class="btn pri" href="#m-new">新建付款</a></div></div>
+  const body = `<div class="phead"><div><h1>总览</h1><p>余额按"资产 ＋ 链"分开记；可用 ＝ 已入账 − 处理中</p></div><div class="row"><a class="btn" href="#m-deposit">充值</a><a class="btn" href="#m-withdraw">${S.hasGateway ? '提币和互转' : '提币'}</a><a class="btn pri" href="#m-new">新建付款</a></div></div>
     ${S.kyb !== 'ok' || S.newMerchant ? onboardBanner() : ''}
     <div class="grid4">
       <div class="card"><span class="muted small">可用余额合计</span><span class="big">${fmt(tot)}</span><span class="small muted">USDT ＋ USDC，按 1:1 合计</span></div>
@@ -440,7 +451,7 @@ function mHome() {
     <div class="card flat"><div class="row sb" style="padding:14px 16px 0"><h2>最近付款</h2><a class="small" href="#m-payouts">全部记录</a></div>${recent.length ? payoutTable(recent) : `<div class="empty"><b>还没有付款记录</b><span class="small">充值到账后就可以新建付款单</span></div>`}</div>`;
   return mShellDesk(body, 'm-home');
 }
-function emptyBal() { return `<div class="card empty"><b>还没有余额</b><span class="small">把 USDT 或 USDC 充值到你的专属地址，或者从 Gateway 余额转入</span><div class="row" style="justify-content:center"><a class="btn pri" href="#m-deposit">去充值</a><a class="btn" href="#m-transfer">从 Gateway 转入</a></div></div>`; }
+function emptyBal() { return `<div class="card empty"><b>还没有余额</b><span class="small">把 USDT 或 USDC 充值到你的专属地址${S.hasGateway ? '，或者从 Gateway 余额转入' : ''}</span><div class="row" style="justify-content:center"><a class="btn pri" href="#m-deposit">去充值</a>${S.hasGateway ? '<a class="btn" href="#m-withdraw">从 Gateway 转入</a>' : ''}</div></div>`; }
 function onboardBanner() {
   return `<div class="note warn row sb"><span>${S.newMerchant ? '开户资料审核中：通过前可以充值和添加收款方，不能付款' : ''}</span><a class="btn sm" href="#m-onboarding">查看开户进度</a></div>`;
 }
@@ -455,8 +466,8 @@ function payoutTable(list) {
 function mPayouts() {
   const F = [['all', '全部'], ['m_approval', '待内部审批'], ['platform', '平台处理中'], ['done', '已完成'], ['failed', '失败']];
   const match = o => S.filter === 'all' || (S.filter === 'platform' ? FROZEN.includes(o.status) : o.status === S.filter);
-  const list = myOrders().filter(match);
-  const all = myOrders();
+  const list = myPayouts().filter(match);
+  const all = myPayouts();
   const cnt = k => all.filter(o => k === 'all' || (k === 'platform' ? FROZEN.includes(o.status) : o.status === k)).length;
   const seg = `<div class="tabs">${F.map(([k, t]) => `<button data-filter="${k}" class="${S.filter === k ? 'on' : ''}">${t} <span class="faint">${cnt(k)}</span></button>`).join('')}</div>`;
   const empty = `<div class="empty"><b>${all.length ? '这个分类下没有付款单' : '还没有付款记录'}</b>${all.length ? `<span class="small">其他分类里有 ${all.length} 笔</span>` : ''}</div>`;
@@ -467,11 +478,11 @@ function mPayouts() {
 function mTimeline(o) {
   if (BLOG[o.id]) return BLOG[o.id];
   const st = o.status;
-  const steps = [['done', `${MUSERS[o.maker]?.name || '提交人'} 新建付款单`, o.created]];
+  const steps = [['done', `${MUSERS[o.maker]?.name || '提交人'} 新建${kindName(o)}`, o.created]];
   const order = ['m_approval', 'compliance', 'channel', 'payout_approval', 'signing', 'processing', 'done'];
   const idx = order.indexOf(st);
   const add = (i, t) => steps.push([idx > i ? 'done' : idx === i ? 'cur' : '', t, '']);
-  add(0, '商户内部审批'); add(1, '平台合规审核');
+  add(0, '商户内部审批'); add(1, o.kind === 'withdraw' ? '平台审核（地址筛查）' : '平台合规审核');
   if (!isCrypto(o)) add(2, '平台选择渠道、锁定报价');
   add(3, '平台出款审批'); add(4, '托管服务商签名、上链'); if (!isCrypto(o)) add(5, '渠道付款'); add(6, '完成');
   if (st === 'rejected' || st === 'cancelled') steps.push(['fail', st === 'rejected' ? '审批人驳回' : '已作废', '']);
@@ -479,6 +490,7 @@ function mTimeline(o) {
 }
 function tlHtml(steps) { return `<ol class="tl">${steps.map(([c, t, s]) => `<li class="${c}"><span class="d"></span><div><div class="t">${esc(t)}</div>${s ? `<div class="s">${esc(s)}</div>` : ''}</div></li>`).join('')}</ol>`; }
 function quoteBlock(o) {
+  if (o.kind === 'withdraw') return `<dl class="kv"><dt>提币金额</dt><dd><b class="num">${fmt(o.amt)} ${o.cur}</b></dd><dt>网络费</dt><dd class="num">${fmt(o.fee)} ${o.cur}</dd><dt>从余额扣除</dt><dd><b class="num">${fmt(o.usdt)}</b> ${o.pay}</dd><dt>到账地址</dt><dd>${esc(bene(o.bene).name)} · ${esc(bene(o.bene).acct)}</dd></dl>`;
   const crypto = isCrypto(o);
   return `<dl class="kv"><dt>收款金额</dt><dd><b class="num">${fmt(o.amt)} ${o.cur}</b></dd>
     ${crypto ? `<dt>兑换</dt><dd class="num">${o.pay.startsWith(o.cur) ? '不需要兑换' : `1 ${o.pay.split('·')[0]} = ${o.rate} ${o.cur}`}</dd>` : `<dt>汇率</dt><dd class="num">1 USDT = ${o.rate.toFixed(4)} ${o.cur}</dd>`}
@@ -495,7 +507,7 @@ function mPO(id) {
   const quoteState = o.status === 'm_approval' ? (left(o) ? `<span class="pill warn">报价有效 <span class="num" data-left="${o.id}">${left(o)}</span></span>` : '<span class="pill bad">报价已过期，需重新报价后再审批</span>') : '';
   const failNote = o.status === 'failed' ? `<div class="note warn">所有可用渠道都失败了，这笔付款单已经失败，${fmt(o.usdt)} ${o.pay} 已恢复到可用余额。可以检查收款方信息后重新发起。</div>` : '';
   const doneNote = o.status === 'done' ? `<div class="row"><button class="btn sm" data-act="receipt">下载付款回单</button></div>` : '';
-  const info = `<dl class="kv"><dt>收款方</dt><dd>${esc(b.name)}</dd><dt>账户</dt><dd>${esc(b.acct)}</dd><dt>付款用途</dt><dd>${esc(o.purpose)}</dd><dt>附件</dt><dd><a href="#" data-act="noop">invoice.pdf</a></dd><dt>付款资产</dt><dd>${o.pay}</dd><dt>提交人</dt><dd>${esc(MUSERS[o.maker]?.name || '—')}</dd></dl>`;
+  const info = o.kind === 'withdraw' ? `<dl class="kv"><dt>类型</dt><dd>提币到自己的钱包</dd><dt>地址</dt><dd>${esc(b.name)} · ${esc(b.acct)}</dd><dt>资产</dt><dd>${o.pay}</dd><dt>提交人</dt><dd>${esc(MUSERS[o.maker]?.name || '—')}</dd></dl>` : `<dl class="kv"><dt>收款方</dt><dd>${esc(b.name)}</dd><dt>账户</dt><dd>${esc(b.acct)}</dd><dt>付款用途</dt><dd>${esc(o.purpose)}</dd><dt>附件</dt><dd><a href="#" data-act="noop">invoice.pdf</a></dd><dt>付款资产</dt><dd>${o.pay}</dd><dt>提交人</dt><dd>${esc(MUSERS[o.maker]?.name || '—')}</dd></dl>`;
   if (isM()) {
     const body = `<div class="card"><div class="row sb"><span class="muted small">${o.id}</span>${pill(MST[o.status])}</div><span class="big">${fmt(o.amt)} <span style="font-size:16px">${o.cur}</span></span><span class="muted">${esc(b.name)}</span>${quoteState}</div>
       ${failNote}<div class="card"><h3>费用</h3>${quoteBlock(o)}</div><div class="card"><h3>进度</h3>${tlHtml(mTimeline(o))}</div><div class="card"><h3>详情</h3>${info}</div>${doneNote}
@@ -547,7 +559,7 @@ function mNew() {
     const t = `<div class="card empty"><b>你现在是"${mu().label}"，不能新建付款单</b><span class="small">切换为 何静（提交人）或 林晓（管理员）</span></div>`;
     return isM() ? mShellMob(t, '新建付款', { tab: 'm-new' }) : mShellDesk(`<h1>新建付款</h1>${t}`, 'm-new');
   }
-  const d = draft(); const okB = S.benes.filter(b => b.merchant === 'M-10086' && b.status === 'ok' && !S.newMerchant);
+  const d = draft(); const okB = S.benes.filter(b => b.merchant === 'M-10086' && b.type !== 'own' && b.status === 'ok' && !S.newMerchant);
   const b = bene(d.bene); const q = draftQuote(d); const e = d.errs;
   const beneSel = `<div class="field"><label for="d-bene">收款方</label><select id="d-bene"><option value="">选择收款方</option>${okB.map(x => `<option value="${x.id}" ${x.id === d.bene ? 'selected' : ''}>${esc(x.name)} · ${x.cur}</option>`).join('')}</select><span class="hint">只显示已审核通过的收款方。<a href="#m-bene-new">添加收款方</a>（新收款方要平台审核）</span>${e.bene ? `<span class="err">${e.bene}</span>` : ''}</div>`;
   const amtF = `<div class="field"><label for="d-amt">收款金额${b ? `（${b.cur}）` : ''}</label><input id="d-amt" inputmode="decimal" class="num" placeholder="对方实际收到的金额" value="${esc(d.amt)}">${e.amt ? `<span class="err">${e.amt}</span>` : ''}</div>`;
@@ -577,7 +589,7 @@ function mBulk() {
 }
 
 function mBenes() {
-  const list = S.newMerchant ? [] : S.benes.filter(b => b.merchant === 'M-10086');
+  const list = S.newMerchant ? [] : S.benes.filter(b => b.merchant === 'M-10086' && b.type !== 'own');
   const T = { ent: '企业', ind: '个人（同名转账）', wallet: '钱包地址' };
   const st = b => b.status === 'ok' ? '<span class="pill ok">可用</span>' : '<span class="pill warn">平台审核中</span>';
   const empty = `<div class="empty"><b>还没有收款方</b><span class="small">添加收款方后平台会审核，通过后才能付款</span><a class="btn pri" href="#m-bene-new">添加收款方</a></div>`;
@@ -607,15 +619,52 @@ function mDeposit() {
   if (isM()) return mShellMob(`<div class="card">${body}</div>`, '充值', { back: 'm-home' });
   return mShellDesk(`<div class="phead"><div><h1>充值</h1><p>链上确认后自动入账</p></div></div><div class="card" style="max-width:760px">${body}</div>`, 'm-deposit');
 }
-function mTransfer() {
-  const g2p = S.transferDir === 'g2p';
-  const body = `<div class="note">余额互转实时到账，两边余额马上更新；不收手续费。链上结算由两边的财务在后台另行处理，不影响你使用。</div>
-    <div class="seg"><button class="${g2p ? 'on' : ''}" data-act="tdir" data-to="g2p">Gateway → Payment</button><button class="${g2p ? '' : 'on'}" data-act="tdir" data-to="p2g">Payment → Gateway</button></div>
-    <div class="grid2"><div class="field"><label for="t-asset">资产 · 链</label><select id="t-asset">${ASSETS.map(a => `<option>${a}</option>`).join('')}</select><span class="hint">${g2p ? 'Gateway 可用：2,318,400.00' : `Payment 可用：${fmt(avail('USDT·TRON'))}`}</span></div><div class="field"><label for="t-amt">金额</label><input id="t-amt" class="num" placeholder="0.00"></div></div>
-    <div class="note">换链（例如 TRON 的 USDT 转到 Ethereum 上用）会产生跨链费用，单独显示，确认后才扣。</div>`;
-  const btn = `<button class="btn pri ${isM() ? 'block' : ''}" data-act="transfer">确认转入（需要动态码）</button>`;
-  if (isM()) return mShellMob(`<div class="card">${body}</div>${btn}`, '余额互转', { back: 'm-home' });
-  return mShellDesk(`<div class="phead"><div><h1>余额互转</h1><p>在 Gateway 收到的钱，转过来就能付款</p></div></div><div class="card" style="max-width:760px">${body}<div>${btn}</div></div>`, 'm-transfer');
+function wdDraft() { if (!S.wd) S.wd = { asset: 'USDT·TRON', addr: '', amt: '', errs: {} }; return S.wd; }
+function wdValidate(d) {
+  const e = {}; const amt = parseFloat(String(d.amt).replace(/,/g, '')); const fee = WFEE[d.asset.split('·')[1]];
+  if (!d.addr) e.addr = '请选择提币地址';
+  if (!(amt > 0)) e.amt = '请输入提币金额';
+  else if (amt + fee > avail(d.asset)) e.amt = `可用余额不够：需要 ${fmt(amt + fee)}（含网络费），可用 ${fmt(avail(d.asset))}`;
+  if (S.kyb !== 'ok' || S.newMerchant) e.kyb = '开户审核通过后才能提币';
+  return e;
+}
+function mWithdraw() {
+  const tab = S.hasGateway ? S.wtab : 'withdraw';
+  const head = S.hasGateway
+    ? `<div class="seg"><button class="${tab === 'withdraw' ? 'on' : ''}" data-act="wtab" data-to="withdraw">提币到链上地址</button><button class="${tab === 'transfer' ? 'on' : ''}" data-act="wtab" data-to="transfer">和 Gateway 互转</button></div>`
+    : `<div class="note">你们只开通了 Payment，多余的钱可以提币到自己的钱包。开通 Gateway 后，还可以和 Gateway 余额互转。 <a href="#" data-act="noop">了解 Gateway</a></div>`;
+  let body;
+  if (tab === 'transfer') {
+    const g2p = S.transferDir === 'g2p';
+    body = `<div class="card"><div class="note">余额互转实时到账，两边余额马上更新；不收手续费。链上结算由两边的财务在后台另行处理，不影响你使用。</div>
+      <div class="seg"><button class="${g2p ? 'on' : ''}" data-act="tdir" data-to="g2p">Gateway → Payment</button><button class="${g2p ? '' : 'on'}" data-act="tdir" data-to="p2g">Payment → Gateway</button></div>
+      <div class="grid2"><div class="field"><label for="t-asset">资产 · 链</label><select id="t-asset">${ASSETS.map(a => `<option>${a}</option>`).join('')}</select><span class="hint">${g2p ? 'Gateway 可用：2,318,400.00' : `Payment 可用：${fmt(avail('USDT·TRON'))}`}</span></div><div class="field"><label for="t-amt">金额</label><input id="t-amt" class="num" placeholder="0.00"></div></div>
+      <div class="note">换链（例如 TRON 的 USDT 转到 Ethereum 上用）会产生跨链费用，单独显示，确认后才扣。</div>
+      <div><button class="btn pri ${isM() ? 'block' : ''}" data-act="transfer">确认${g2p ? '转入' : '转出'}（需要动态码）</button></div></div>`;
+  } else {
+    const d = wdDraft(); const e = d.errs; const fee = WFEE[d.asset.split('·')[1]];
+    const addrs = S.newMerchant ? [] : S.benes.filter(b => b.merchant === 'M-10086' && b.type === 'own');
+    const forAsset = addrs.filter(a => a.asset === d.asset);
+    const amt = parseFloat(String(d.amt).replace(/,/g, '')) || 0;
+    const form = `<div class="card">
+      <div class="grid2"><div class="field"><label for="wd-asset">提什么</label><select id="wd-asset">${ASSETS.map(a => `<option value="${a}" ${a === d.asset ? 'selected' : ''}>${a} · 可用 ${fmt(avail(a))}</option>`).join('')}</select></div>
+      <div class="field"><label for="wd-addr">提到哪个地址</label><select id="wd-addr"><option value="">${forAsset.length ? '选择你们的提币地址' : '这个资产还没有提币地址'}</option>${forAsset.map(a => `<option value="${a.id}" ${a.id === d.addr ? 'selected' : ''} ${a.status === 'ok' ? '' : 'disabled'}>${esc(a.name)} · ${esc(a.acct)}${a.status === 'cool' ? `（冷静期，${a.until} 后可用）` : ''}</option>`).join('')}</select>${e.addr ? `<span class="err">${e.addr}</span>` : '<span class="hint">只能提到你们自己添加并通过筛查的地址</span>'}</div></div>
+      <div class="field"><label for="wd-amt">提币金额</label><div class="row" style="flex-wrap:nowrap"><input id="wd-amt" class="num" placeholder="0.00" value="${esc(d.amt)}"><button class="btn sm" data-act="wd-all">全部</button></div>${e.amt ? `<span class="err">${e.amt}</span>` : ''}</div>
+      <dl class="kv"><dt>网络费</dt><dd class="num">${fmt(fee)} ${d.asset.split('·')[0]}</dd><dt>从余额扣除</dt><dd class="num"><b>${fmt(amt ? amt + fee : 0)}</b> ${d.asset}</dd><dt>审批</dt><dd>${amt + fee > S.limit ? `超过 ${fmt(S.limit, 0)}，先由你们的审批人批准，再交平台审核` : '不超过审批金额，直接交平台审核'}</dd></dl>
+      ${e.kyb ? `<div class="note warn">${e.kyb}</div>` : ''}
+      <div><button class="btn pri ${isM() ? 'block' : ''}" data-act="wd-submit" ${canMake() ? '' : 'disabled'}>提交提币（需要动态码）</button>${canMake() ? '' : `<span class="small muted"> 你现在是"${mu().label}"，不能提币</span>`}</div></div>`;
+    const st = a => a.status === 'ok' ? '<span class="pill ok">可用</span>' : `<span class="pill warn">冷静期，${a.until} 后可用</span>`;
+    const addrCard = isM()
+      ? `<div class="row sb"><h2>提币地址</h2><button class="btn sm" data-act="addr-add">添加</button></div>${addrs.length ? `<div class="mlist">${addrs.map(a => `<div class="mitem"><div class="l1"><b>${esc(a.name)}</b>${st(a)}</div><div class="l2"><span>${a.asset} · ${esc(a.acct)}</span></div></div>`).join('')}</div>` : '<div class="card empty"><b>还没有提币地址</b><span class="small">添加后 24 小时可用，期间平台做地址筛查</span></div>'}`
+      : `<div class="card flat"><div class="row sb" style="padding:14px 16px 0"><h2>提币地址</h2><button class="btn sm" data-act="addr-add">添加提币地址</button></div>${addrs.length ? `<div class="tw"><table><thead><tr><th>名称</th><th>资产 · 链</th><th>地址</th><th>状态</th></tr></thead><tbody>${addrs.map(a => `<tr><td>${esc(a.name)}</td><td>${a.asset}</td><td class="num small">${esc(a.acct)}</td><td>${st(a)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><b>还没有提币地址</b><span class="small">添加后 24 小时可用，期间平台做地址筛查</span></div>'}<p class="small muted" style="padding:0 16px 14px">新地址要动态码；添加后有 24 小时冷静期，平台做地址风险筛查，通过后才能提币。</p></div>`;
+    const wds = myWds();
+    const hist = wds.length ? (isM() ? `<h2>提币记录</h2><div class="mlist">${wds.map(o => `<a class="mitem" href="#m-po.${o.id}"><div class="l1"><b>${esc(bene(o.bene).name)}</b>${pill(MST[o.status])}</div><div class="l2"><span>${o.created} · ${o.id}</span><span class="num">${fmt(o.amt)} ${o.cur}</span></div></a>`).join('')}</div>`
+      : `<div class="card flat"><div class="row sb" style="padding:14px 16px 0"><h2>提币记录</h2></div><div class="tw"><table><thead><tr><th>编号</th><th>地址</th><th class="r">金额</th><th>状态</th><th>提交人</th><th>时间</th></tr></thead><tbody>${wds.map(o => `<tr class="click" data-href="#m-po.${o.id}"><td><a href="#m-po.${o.id}">${o.id}</a></td><td>${esc(bene(o.bene).name)}</td><td class="r num">${fmt(o.amt)} ${o.pay}</td><td>${pill(MST[o.status])}</td><td>${esc(MUSERS[o.maker]?.name || '—')}</td><td class="muted">${o.created}</td></tr>`).join('')}</tbody></table></div></div>`) : '';
+    body = isM() ? `${form}${addrCard}${hist}` : `<div class="grid2" style="grid-template-columns:1.2fr 1fr;align-items:start">${form}<div class="card"><h2>提币怎么走</h2><ol class="small" style="margin:0;padding-left:18px;display:grid;gap:4px"><li>提交（超过审批金额要审批人批准）</li><li>平台审核：地址筛查</li><li>平台出款审批（两个人）</li><li>托管服务商签名、上链</li><li>链上确认后到账</li></ol><p class="small muted">和付款一样走两人把关；被拒绝或失败时，冻结的钱自动退回可用余额。</p></div></div>${addrCard}${hist}`;
+  }
+  const title = S.hasGateway ? '提币和互转' : '提币';
+  if (isM()) return mShellMob(`${head}${body}`, title, { back: 'm-home' });
+  return mShellDesk(`<div class="phead"><div><h1>${title}</h1><p>${S.hasGateway ? '多余的钱可以提到自己的钱包，也可以和 Gateway 余额互转' : '多余的钱可以提到自己的钱包'}</p></div></div>${head}${body}`, 'm-withdraw');
 }
 function mTeam() {
   const admin = mu().role === 'admin';
@@ -638,7 +687,7 @@ function mOnboarding() {
   return mShellDesk(`<div class="phead"><div><h1>开户资料</h1><p>从 Gateway 一键开通的商户，公司资料已经预填，只补 Payment 特有的几项</p></div></div><div class="grid2">${body}</div>`, 'm-onboarding');
 }
 function mMe() {
-  const links = [['m-benes', '收款方'], ['m-deposit', '充值'], ['m-transfer', '余额互转'], ['m-team', '团队和审批设置'], ['m-onboarding', '开户资料'], ['m-guide', '重新看新手引导']];
+  const links = [['m-benes', '收款方'], ['m-deposit', '充值'], ['m-withdraw', '提币和互转'], ['m-team', '团队和审批设置'], ['m-onboarding', '开户资料'], ['m-guide', '重新看新手引导']];
   const body = `<div class="card"><b>${esc(mu().name)}</b><span class="muted small">${esc(MERCHANT.name)} · ${mu().label}</span><div class="field"><label for="muser">切换演示用户</label><select id="muser">${Object.entries(MUSERS).map(([k, u]) => `<option value="${k}" ${k === S.mUser ? 'selected' : ''}>${u.name}（${u.label}）</option>`).join('')}</select></div></div>
     <div class="card flat"><div class="plist" style="padding:4px 16px">${links.map(([r, t]) => `<a href="#${r}"><span>${t}</span><span class="faint">›</span></a>`).join('')}</div></div>
     <div class="card"><div class="row sb"><span>产品切换</span><div class="switcher"><button data-act="to-gateway">Gateway</button><button class="on">Payment</button></div></div><div class="row sb"><span>语言</span><select class="langsel" id="lang"><option value="zh">中文</option><option value="en">English</option></select></div></div>
@@ -697,7 +746,7 @@ function oHome() {
 }
 function oItem(o) { return `<a class="mitem" href="#o-po.${o.id}"><div class="l1"><b>${esc(o.mname)}</b>${pill(OST[o.status])}</div><div class="l2"><span>${o.id} → ${esc(bene(o.bene).name)}</span><span class="num">${fmt(o.amt)} ${o.cur}</span></div></a>`; }
 function oTable(list) {
-  return `<div class="tw"><table><thead><tr><th>付款单</th><th>商户</th><th>收款方</th><th class="r">收款金额</th><th class="r">扣款</th><th>类型</th><th>状态</th><th>时间</th></tr></thead><tbody>${list.map(o => `<tr class="click" data-href="#o-po.${o.id}"><td><a href="#o-po.${o.id}">${o.id}</a></td><td>${esc(o.mname)}</td><td>${esc(bene(o.bene).name)}</td><td class="r">${curAmt(o)}</td><td class="r num">${fmt(o.usdt)}</td><td>${isCrypto(o) ? '<span class="pill gray">直付</span>' : '<span class="pill gray">法币</span>'}</td><td>${pill(OST[o.status])}</td><td class="muted">${o.created}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="tw"><table><thead><tr><th>付款单</th><th>商户</th><th>收款方</th><th class="r">收款金额</th><th class="r">扣款</th><th>类型</th><th>状态</th><th>时间</th></tr></thead><tbody>${list.map(o => `<tr class="click" data-href="#o-po.${o.id}"><td><a href="#o-po.${o.id}">${o.id}</a></td><td>${esc(o.mname)}</td><td>${esc(bene(o.bene).name)}</td><td class="r">${curAmt(o)}</td><td class="r num">${fmt(o.usdt)}</td><td>${o.kind === 'withdraw' ? '<span class="pill cop">提币</span>' : isCrypto(o) ? '<span class="pill gray">直付</span>' : '<span class="pill gray">法币</span>'}</td><td>${pill(OST[o.status])}</td><td class="muted">${o.created}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function oOrders() {
   const F = [['todo', '待处理'], ['mine', '我的待办'], ['paying', '付款中'], ['done', '已完成'], ['failed', '失败'], ['all', '全部']];
@@ -719,6 +768,7 @@ function oActions(o) {
   const r = ou().role; const need = ORole[o.status];
   const roleName = { compliance: '合规审核', trader: '交易员', approver: '出款审批' }[need];
   if (need && r !== need) return `<div class="note">这一步需要"${roleName}"处理。右上角切换员工可以演示。</div>`;
+  if (o.status === 'compliance' && o.kind === 'withdraw') return `<div class="card"><h2>提币审核</h2><div class="grid2"><div class="note">提到商户自己的提币地址：${esc(bene(o.bene).name)} · ${esc(bene(o.bene).acct)}（已过 24 小时冷静期）</div><div class="note">地址筛查：低风险 · 制裁名单：未命中</div></div><div class="row"><button class="btn pri" data-act="o-pass" data-id="${o.id}">审核通过</button><button class="btn bad" data-act="o-reject" data-id="${o.id}">拒绝（退回商户余额）</button></div></div>`;
   if (o.status === 'compliance') return `<div class="card"><h2>合规审核</h2><div class="grid2"><div class="note">收款方：${bene(o.bene).status === 'ok' ? '已审核通过' : '待审核'} · 制裁名单：未命中 · 地址筛查：不适用</div><div class="note">付款用途和附件：${esc(o.purpose)} · invoice.pdf</div></div><div class="row"><button class="btn pri" data-act="o-pass" data-id="${o.id}">审核通过</button><button class="btn" data-act="o-info" data-id="${o.id}">要求商户补资料</button><button class="btn bad" data-act="o-reject" data-id="${o.id}">拒绝（退回商户余额）</button></div></div>`;
   if (o.status === 'channel') {
     const list = rankChannels(o);
@@ -759,7 +809,7 @@ function oMerchants() {
 function oBenes() {
   const list = S.benes;
   const isC = ou().role === 'compliance';
-  return oShellDesk(`<div class="phead"><div><h1>收款方审核</h1><p>企业看资料和制裁筛查；个人只接受同名转账，核对户名和 KYC 姓名</p></div></div>${isC ? '' : '<div class="note">审核需要"合规审核"角色，右上角切换为 王敏。</div>'}<div class="card flat"><div class="tw"><table><thead><tr><th>收款方</th><th>商户</th><th>类型</th><th>币种</th><th>账户</th><th>状态</th><th></th></tr></thead><tbody>${list.map(b => `<tr><td>${esc(b.name)}</td><td>${b.merchant === 'M-10086' ? '海川供应链' : '蓝湾科技'}</td><td>${{ ent: '企业', ind: '个人', wallet: '钱包' }[b.type]}</td><td>${b.cur}</td><td class="num small">${esc(b.acct)}</td><td>${b.status === 'ok' ? '<span class="pill ok">已通过</span>' : '<span class="pill warn">待审核</span>'}</td><td class="r">${b.status === 'review' && isC ? `<button class="btn sm pri" data-act="bene-pass" data-id="${b.id}">通过</button> <button class="btn sm bad" data-act="noop">拒绝</button>` : ''}</td></tr>`).join('')}</tbody></table></div></div>`, 'o-benes');
+  return oShellDesk(`<div class="phead"><div><h1>收款方审核</h1><p>企业看资料和制裁筛查；个人只接受同名转账，核对户名和 KYC 姓名</p></div></div>${isC ? '' : '<div class="note">审核需要"合规审核"角色，右上角切换为 王敏。</div>'}<div class="card flat"><div class="tw"><table><thead><tr><th>收款方</th><th>商户</th><th>类型</th><th>币种</th><th>账户</th><th>状态</th><th></th></tr></thead><tbody>${list.map(b => `<tr><td>${esc(b.name)}</td><td>${b.merchant === 'M-10086' ? '海川供应链' : '蓝湾科技'}</td><td>${{ ent: '企业', ind: '个人', wallet: '钱包', own: '提币地址' }[b.type]}</td><td>${b.cur}</td><td class="num small">${esc(b.acct)}</td><td>${b.status === 'ok' ? '<span class="pill ok">已通过</span>' : b.status === 'cool' ? `<span class="pill warn">冷静期，${b.until} 后可用</span>` : '<span class="pill warn">待审核</span>'}</td><td class="r">${b.status === 'review' && isC ? `<button class="btn sm pri" data-act="bene-pass" data-id="${b.id}">通过</button> <button class="btn sm bad" data-act="noop">拒绝</button>` : ''}</td></tr>`).join('')}</tbody></table></div></div>`, 'o-benes');
 }
 function oSettle() {
   const isF = ou().role === 'finance';
@@ -805,10 +855,10 @@ function oMore() {
 
 // ---------- 入口页 ----------
 function start() {
-  const mp = [['m-home', '总览'], ['m-new', '新建付款'], ['m-payouts', '付款记录'], ['m-po.PO-24121', '付款单详情（付款中）'], ['m-po.PO-24112', '付款单详情（全部渠道失败）'], ['m-approvals', '待我审批'], ['m-benes', '收款方'], ['m-bene-new', '添加收款方'], ['m-deposit', '充值'], ['m-transfer', '余额互转'], ['m-team', '团队和审批设置'], ['m-onboarding', '开户资料（Gateway 推荐）'], ['m-bulk', '批量付款'], ['m-guide', '新手引导']];
+  const mp = [['m-home', '总览'], ['m-new', '新建付款'], ['m-payouts', '付款记录'], ['m-po.PO-24121', '付款单详情（付款中）'], ['m-po.PO-24112', '付款单详情（全部渠道失败）'], ['m-approvals', '待我审批'], ['m-benes', '收款方'], ['m-bene-new', '添加收款方'], ['m-deposit', '充值'], ['m-withdraw', '提币和互转'], ['m-team', '团队和审批设置'], ['m-onboarding', '开户资料（Gateway 推荐）'], ['m-bulk', '批量付款'], ['m-guide', '新手引导']];
   const op = [['o-home', '工作台'], ['o-orders', '付款单'], ['o-po.PO-24116', '选渠道（交易员）'], ['o-po.PO-24117', '出款审批'], ['o-po.PO-24118', '合规审核'], ['o-exc', '异常队列'], ['o-merchants', '商户开户'], ['o-benes', '收款方审核'], ['o-settle', 'Gateway 清算'], ['o-wallets', '托管钱包'], ['o-recon', '对账'], ['o-channels', '渠道'], ['o-routes', '直付出款路线'], ['o-pricing', '费率'], ['o-staff', '员工和权限'], ['o-audit', '操作记录']];
   return `<div class="start"><div style="display:grid;gap:6px"><span class="envtag" style="justify-self:start">原型</span><h1 style="font-size:28px">Payment 代付系统原型 v1</h1><p class="muted">可以点击操作，数据是模拟的。手机打开会看到手机版（页面结构和电脑版不同）。</p></div>
-    <div class="two"><div class="card"><div class="row sb"><h2>商户后台</h2><a class="btn pri" href="#m-home">进入</a></div><p class="small muted">商户用户：管理员、提交人、审批人、查看。在右上角切换演示用户。</p><div class="row"><label class="small"><input type="checkbox" id="newm" ${S.newMerchant ? 'checked' : ''}> 新商户（没有余额、没有记录，看空状态和引导）</label></div><div class="plist">${mp.map(([r, t]) => `<a href="#${r}"><span>${t}</span><span class="faint num">#${r}</span></a>`).join('')}</div></div>
+    <div class="two"><div class="card"><div class="row sb"><h2>商户后台</h2><a class="btn pri" href="#m-home">进入</a></div><p class="small muted">商户用户：管理员、提交人、审批人、查看。在右上角切换演示用户。</p><div class="row"><label class="small"><input type="checkbox" id="newm" ${S.newMerchant ? 'checked' : ''}> 新商户（没有余额、没有记录，看空状态和引导）</label><label class="small"><input type="checkbox" id="hasgw" ${S.hasGateway ? 'checked' : ''}> 已开通 Gateway（取消勾选：只有 Payment，只能提币）</label></div><div class="plist">${mp.map(([r, t]) => `<a href="#${r}"><span>${t}</span><span class="faint num">#${r}</span></a>`).join('')}</div></div>
     <div class="card"><div class="row sb"><h2>运营后台</h2><a class="btn pri" href="#o-home">进入</a></div><p class="small muted">平台员工：客服、合规、交易员、出款审批、财务、管理员。在右上角切换演示员工。</p><div class="plist">${op.map(([r, t]) => `<a href="#${r}"><span>${t}</span><span class="faint num">#${r}</span></a>`).join('')}</div></div></div>
     <div class="card"><h2>建议这样走一遍</h2><ol class="small" style="margin:0;padding-left:18px;display:grid;gap:4px"><li>商户后台用 何静（提交人）新建一笔 AED 付款，超过 100,000 USDT 会进入"待我审批"</li><li>切换为 孙涛（审批人）批准，输入任意 6 位数字作为动态码</li><li>到运营后台：王敏（合规）审核通过 → 李强（交易员）选渠道 → 赵磊（出款审批）批准</li><li>在付款单上模拟托管签名、渠道失败（换渠道）或成功；回到商户后台看状态和余额变化</li><li>周婷（财务）在"Gateway 清算"发起一笔结算</li></ol></div></div>`;
 }
@@ -824,7 +874,7 @@ function view() {
   const r = S.route;
   if (r.startsWith('m-po.')) return mPO(r.slice(5));
   if (r.startsWith('o-po.')) return oPO(r.slice(5));
-  const V = { start, 'm-home': mHome, 'm-new': mNew, 'm-bulk': () => isM() ? mNew() : mBulk(), 'm-payouts': mPayouts, 'm-approvals': mApprovals, 'm-benes': mBenes, 'm-bene-new': mBeneNew, 'm-deposit': mDeposit, 'm-transfer': mTransfer, 'm-team': mTeam, 'm-onboarding': mOnboarding, 'm-me': () => isM() ? mMe() : mHome(), 'm-guide': guide,
+  const V = { start, 'm-home': mHome, 'm-new': mNew, 'm-bulk': () => isM() ? mNew() : mBulk(), 'm-payouts': mPayouts, 'm-approvals': mApprovals, 'm-benes': mBenes, 'm-bene-new': mBeneNew, 'm-deposit': mDeposit, 'm-withdraw': mWithdraw, 'm-transfer': () => { S.wtab = 'transfer'; return mWithdraw(); }, 'm-team': mTeam, 'm-onboarding': mOnboarding, 'm-me': () => isM() ? mMe() : mHome(), 'm-guide': guide,
     'o-home': oHome, 'o-orders': oOrders, 'o-exc': oExc, 'o-merchants': oMerchants, 'o-benes': oBenes, 'o-settle': oSettle, 'o-wallets': oWallets, 'o-recon': oRecon, 'o-channels': oChannels, 'o-routes': oRoutes, 'o-pricing': oPricing, 'o-staff': oStaff, 'o-audit': oAudit, 'o-more': () => isM() ? oMore() : oHome() };
   return (V[r] || start)();
 }
@@ -877,6 +927,21 @@ function act(a, el) {
     requote: () => { Object.assign(o, quoteFor(o.cur, o.amt, o.pay)); o.rate = o.rate * 0.9996; o.usdt = o.amt / o.rate + o.fee; o.quoteExp = Date.now() + 15 * MIN; render(); toast('已按最新汇率重新报价，有效 15 分钟'); },
     'bene-save': () => { S.benes.push({ id: 'B' + (S.benes.length + 1), name: (document.getElementById('bn-name') || {}).value || '新收款方', type: 'ent', cur: (document.getElementById('bn-cur') || {}).value || 'USD', acct: '待审核', country: '—', status: 'review', merchant: 'M-10086' }); go('m-benes'); toast('已提交，平台审核通过后可以付款'); },
     tdir: () => { S.transferDir = el.dataset.to; render(); },
+    wtab: () => { S.wtab = el.dataset.to; render(); },
+    'wd-all': () => { const d = wdDraft(); d.amt = String(Math.max(0, Math.floor((avail(d.asset) - WFEE[d.asset.split('·')[1]]) * 100) / 100)); render(); },
+    'wd-submit': () => {
+      const d = wdDraft(); d.errs = wdValidate(d);
+      if (Object.keys(d.errs).length) { render(); toast(`有 ${Object.keys(d.errs).length} 项要改`); return; }
+      const amt = parseFloat(String(d.amt).replace(/,/g, ''));
+      modal({ title: '确认提币', body: `<p class="small">提 <b class="num">${fmt(amt)}</b> ${d.asset} 到 ${esc(bene(d.addr).name)}（${esc(bene(d.addr).acct)}）。</p>`, otp: true, ok: '提交', run: () => {
+        const o = mkWd({ id: 'WD-00' + (33 + ORDERS.filter(x => x.kind === 'withdraw').length - 2), bene: d.addr, amt, pay: d.asset, maker: S.mUser, created: '10-26 ' + new Date().toTimeString().slice(0, 5) });
+        o.status = o.usdt > S.limit ? 'm_approval' : 'compliance'; ORDERS.unshift(o); S.wd = null; go('m-po.' + o.id);
+        toast(o.status === 'm_approval' ? '已提交，等你们的审批人批准' : '已提交给平台审核，余额已冻结'); } });
+    },
+    'addr-add': () => modal({ title: '添加提币地址', body: `<div class="field"><label for="na-name">名称</label><input id="na-name" placeholder="例如：公司冷钱包"></div><div class="field"><label for="na-asset">资产 · 链</label><select id="na-asset">${ASSETS.map(a => `<option>${a}</option>`).join('')}</select></div><div class="field"><label for="na-addr">地址</label><input id="na-addr" class="num" placeholder="粘贴地址"></div><p class="small muted">添加后 24 小时冷静期，平台做地址风险筛查，通过后才能提币。</p>`, otp: true, ok: '添加', run: () => {
+      const asset = document.getElementById('na-asset').value; const addr = document.getElementById('na-addr').value || 'TXy7…k2Pa';
+      S.benes.push({ id: 'A' + (S.benes.length + 1), name: document.getElementById('na-name').value || '新提币地址', type: 'own', cur: asset.split('·')[0], asset, acct: asset.split('·')[1] + ' · ' + (addr.length > 12 ? addr.slice(0, 5) + '…' + addr.slice(-4) : addr), country: '—', status: 'cool', until: '10-27 ' + new Date().toTimeString().slice(0, 5), merchant: 'M-10086' });
+      toast('已添加，24 小时后可用'); } }),
     transfer: () => modal({ title: '确认余额互转', body: '<p class="small">实时到账，两边余额马上更新。</p>', otp: true, ok: '确认', run: () => toast('已转入，可以马上用来付款') }),
     'save-limit': () => { const v = parseFloat(document.getElementById('limit').value); if (!(v >= 0)) { toast('请输入 0 或更大的数字'); return; } modal({ title: '修改审批金额', body: `<p class="small">改为 <b class="num">${fmt(v, 0)}</b> USDT。</p>`, otp: true, ok: '保存', run: () => { S.limit = v; toast('已保存'); } }); },
     'bulk-load': () => { S.bulk = [['Lumen Trading FZE', '120,000.00 AED', '货款 INV-7750'], ['Fjord Components GmbH', '38,500.00 EUR', '配件'], ['Kestrel Logistics Ltd', '64,000.00 HKD', '物流费', '收款方还在审核中']]; render(); },
@@ -918,6 +983,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const t = e.target; const d = S.draft;
+  if (t.id === 'wd-amt') { wdDraft().amt = t.value; refreshQuote(); return; }
   if (t.id && t.id.startsWith('otp') && t.value) { const n = document.getElementById('otp' + (+t.id.slice(3) + 1)); n && n.focus(); return; }
   if (!d) return;
   if (t.id === 'd-amt') { d.amt = t.value; refreshQuote(); }
@@ -933,6 +999,9 @@ document.addEventListener('change', e => {
   if (t.id === 'muser') { S.mUser = t.value; render(); toast(`已切换为 ${MUSERS[t.value].name}（${MUSERS[t.value].label}）`); }
   if (t.id === 'ouser') { S.oUser = t.value; render(); toast(`已切换为 ${OUSERS[t.value].name}（${OUSERS[t.value].label}）`); }
   if (t.id === 'lang') { if (t.value === 'en') { t.value = 'zh'; toast('原型只做了中文；英文在开发阶段补齐（默认跟随浏览器语言）'); } }
+  if (t.id === 'hasgw') { S.hasGateway = t.checked; render(); }
+  if (t.id === 'wd-asset') { wdDraft().asset = t.value; wdDraft().addr = ''; render(); }
+  if (t.id === 'wd-addr') { wdDraft().addr = t.value; render(); }
   if (t.id === 'newm') { S.newMerchant = t.checked; if (t.checked) go('m-guide'); else render(); }
   if (t.id === 'd-bene') { draft().bene = t.value; const b = bene(t.value); if (b && b.type === 'wallet') draft().pay = b.acct.startsWith('TRON') ? 'USDT·TRON' : draft().pay; render(); }
   if (t.id === 'd-pay') { draft().pay = t.value; render(); }
